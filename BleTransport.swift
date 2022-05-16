@@ -215,8 +215,8 @@ enum BleTransportError: Error {
             print(BleTransport.tag, "<-", cleanAPDU)
             
             if (self.expectedLength <= 0) {
-              self.currentAPDUResponse = "" // Clear the flag, the apdu is done.
               self.exchangeCallback!(self.currentAPDUResponse)
+              self.currentAPDUResponse = "" // Clear the flag, the apdu is done.
             }
           case .failure(let error):
             print(BleTransport.tag, "Failed to listen with error: \(error.localizedDescription)")
