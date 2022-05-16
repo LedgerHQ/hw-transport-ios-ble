@@ -1,0 +1,20 @@
+PODS:
+  - Bluejay (0.8.9)
+  - Starscream (4.0.4)
+
+DEPENDENCIES:
+  - Bluejay (~> 0.8)
+  - Starscream (~> 4.0.0)
+
+SPEC REPOS:
+  trunk:
+    - Bluejay
+    - Starscream
+
+SPEC CHECKSUMS:
+  Bluejay: 2dd1e38c0b3bb02c931c0c10d380887230b09a33
+  Starscream: 5178aed56b316f13fa3bc55694e583d35dd414d9
+
+PODFILE CHECKSUM: 64d23fed4d658955a759b849d834a6a574a71ca4
+
+COCOAPODS: 1.10.1

@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="20037" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+    <device id="retina6_1" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="20020"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="tne-QT-ifu">
+            <objects>
+                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="Ledger_Bluetooth" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZYX-t3-er2">
+                                <rect key="frame" x="114" y="191.5" width="186" height="50"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Find devices">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="30"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="findDevicesButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="gfn-wl-Cs2"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Click the button to find devices" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zP7-dh-vUk">
+                                <rect key="frame" x="20" y="104" width="374" height="27.5"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="23"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" bounces="NO" showsHorizontalScrollIndicator="NO" showsVerticalScrollIndicator="NO" bouncesZoom="NO" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="or1-36-WG6">
+                                <rect key="frame" x="0.0" y="404.5" width="414" height="491.5"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <prototypes>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="deviceCell" rowHeight="78" id="Xu2-WI-JeI" customClass="DeviceFoundTableViewCell" customModule="Ledger_Bluetooth" customModuleProvider="target">
+                                        <rect key="frame" x="0.0" y="44.5" width="414" height="78"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="Xu2-WI-JeI" id="N8h-DV-YYH">
+                                            <rect key="frame" x="0.0" y="0.0" width="414" height="78"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Cub-t8-YdI">
+                                                    <rect key="frame" x="28" y="26" width="50" height="26"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="21"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" animating="YES" style="large" translatesAutoresizingMaskIntoConstraints="NO" id="Cnt-aC-Gvw">
+                                                    <rect key="frame" x="321.5" y="20.5" width="37" height="37"/>
+                                                </activityIndicatorView>
+                                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="w2e-Zr-bNf">
+                                                    <rect key="frame" x="293.5" y="11" width="92.5" height="56"/>
+                                                    <state key="normal" title="Button"/>
+                                                    <buttonConfiguration key="configuration" style="plain" title="Connect">
+                                                        <fontDescription key="titleFontDescription" type="system" pointSize="18"/>
+                                                    </buttonConfiguration>
+                                                    <connections>
+                                                        <action selector="connectButtonTapped:" destination="Xu2-WI-JeI" eventType="touchUpInside" id="et2-0C-iVU"/>
+                                                    </connections>
+                                                </button>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="w2e-Zr-bNf" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Cub-t8-YdI" secondAttribute="trailing" constant="8" id="DUH-WL-chj"/>
+                                                <constraint firstItem="Cub-t8-YdI" firstAttribute="centerY" secondItem="N8h-DV-YYH" secondAttribute="centerY" id="UTY-xM-4OV"/>
+                                                <constraint firstItem="w2e-Zr-bNf" firstAttribute="top" secondItem="N8h-DV-YYH" secondAttribute="topMargin" id="Yef-wT-5sC"/>
+                                                <constraint firstAttribute="bottomMargin" secondItem="w2e-Zr-bNf" secondAttribute="bottom" id="eGJ-gL-Aem"/>
+                                                <constraint firstItem="Cnt-aC-Gvw" firstAttribute="centerY" secondItem="w2e-Zr-bNf" secondAttribute="centerY" id="gIM-8C-EGr"/>
+                                                <constraint firstItem="Cnt-aC-Gvw" firstAttribute="centerX" secondItem="w2e-Zr-bNf" secondAttribute="centerX" id="k54-Fy-NE0"/>
+                                                <constraint firstItem="Cub-t8-YdI" firstAttribute="leading" secondItem="N8h-DV-YYH" secondAttribute="leadingMargin" constant="8" id="oY0-7h-iq4"/>
+                                                <constraint firstAttribute="trailingMargin" secondItem="w2e-Zr-bNf" secondAttribute="trailing" constant="8" id="q8g-D2-IyY"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                        <connections>
+                                            <outlet property="activityIndicator" destination="Cnt-aC-Gvw" id="eCP-Mt-CBw"/>
+                                            <outlet property="connectButton" destination="w2e-Zr-bNf" id="vAd-Lu-awO"/>
+                                            <outlet property="deviceNameLabel" destination="Cub-t8-YdI" id="I44-jK-mNR"/>
+                                        </connections>
+                                    </tableViewCell>
+                                </prototypes>
+                                <connections>
+                                    <outlet property="dataSource" destination="BYZ-38-t0r" id="nS0-BA-6wI"/>
+                                    <outlet property="delegate" destination="BYZ-38-t0r" id="O30-K3-MPx"/>
+                                </connections>
+                            </tableView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Devices found:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ygj-ZB-0tj">
+                                <rect key="frame" x="144" y="341.5" width="126" height="23"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="19"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="ZYX-t3-er2" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="5S5-nv-B1q"/>
+                            <constraint firstItem="ygj-ZB-0tj" firstAttribute="top" secondItem="ZYX-t3-er2" secondAttribute="bottom" constant="100" id="8oc-Hw-9lf"/>
+                            <constraint firstItem="ygj-ZB-0tj" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="KNy-DQ-Rlo"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="zP7-dh-vUk" secondAttribute="trailing" constant="20" id="XvX-X2-dqN"/>
+                            <constraint firstItem="zP7-dh-vUk" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="YYi-sF-Zwh"/>
+                            <constraint firstItem="ZYX-t3-er2" firstAttribute="top" secondItem="zP7-dh-vUk" secondAttribute="bottom" constant="60" id="ZUE-7D-cgt"/>
+                            <constraint firstItem="or1-36-WG6" firstAttribute="top" secondItem="ygj-ZB-0tj" secondAttribute="bottom" constant="40" id="b1u-TT-RWb"/>
+                            <constraint firstItem="or1-36-WG6" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="bry-x6-Gpv"/>
+                            <constraint firstItem="zP7-dh-vUk" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="60" id="cWe-MZ-XSM"/>
+                            <constraint firstAttribute="bottom" secondItem="or1-36-WG6" secondAttribute="bottom" id="o7U-G1-khG"/>
+                            <constraint firstItem="or1-36-WG6" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="uND-Sr-NGL"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="devicesFoundLabel" destination="ygj-ZB-0tj" id="Czr-un-DbS"/>
+                        <outlet property="devicesTableView" destination="or1-36-WG6" id="fLY-LT-CyD"/>
+                        <outlet property="findDevicesButton" destination="ZYX-t3-er2" id="TGC-ch-icx"/>
+                        <outlet property="infoLabel" destination="zP7-dh-vUk" id="zYW-bm-f0a"/>
+                        <segue destination="imo-1o-lhb" kind="presentation" identifier="connectedDeviceSegue" modalPresentationStyle="overFullScreen" id="QLF-Zz-xUy"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53.623188405797109" y="138.61607142857142"/>
+        </scene>
+        <!--Connected View Controller-->
+        <scene sceneID="NF5-Cs-pYh">
+            <objects>
+                <viewController id="imo-1o-lhb" customClass="ConnectedViewController" customModule="Ledger_Bluetooth" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="po7-Ap-Dqa">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ym3-zH-BMd">
+                                <rect key="frame" x="149.5" y="788.5" width="115" height="35.5"/>
+                                <color key="tintColor" systemColor="systemRedColor"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Disconnect">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="18"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="disconnectButtonTapped:" destination="imo-1o-lhb" eventType="touchUpInside" id="oAl-k3-Y4p"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Connected to" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="HeQ-Mv-eRL">
+                                <rect key="frame" x="20" y="104" width="374" height="27.5"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="23"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="YoC-M2-EdU">
+                                <rect key="frame" x="80" y="429" width="254" height="38"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain">
+                                    <attributedString key="attributedTitle">
+                                        <fragment content="Install BTC app">
+                                            <attributes>
+                                                <font key="NSFont" metaFont="system" size="20"/>
+                                                <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="natural" tighteningFactorForTruncation="0.0"/>
+                                            </attributes>
+                                        </fragment>
+                                    </attributedString>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="installAppButtonTapped:" destination="imo-1o-lhb" eventType="touchUpInside" id="Rrv-gE-W1S"/>
+                                </connections>
+                            </button>
+                            <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="EiC-zq-bqb">
+                                <rect key="frame" x="60" y="567" width="294" height="4"/>
+                            </progressView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Preparing..." textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="JQL-h1-6yB">
+                                <rect key="frame" x="153" y="522" width="108" height="27"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="22"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="D3n-k3-IVQ"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="YoC-M2-EdU" firstAttribute="centerY" secondItem="po7-Ap-Dqa" secondAttribute="centerY" id="6Ui-7T-tVa"/>
+                            <constraint firstItem="D3n-k3-IVQ" firstAttribute="bottom" secondItem="ym3-zH-BMd" secondAttribute="bottom" constant="38" id="GNm-kL-gIG"/>
+                            <constraint firstItem="D3n-k3-IVQ" firstAttribute="trailing" secondItem="YoC-M2-EdU" secondAttribute="trailing" constant="80" id="Po3-kM-UC8"/>
+                            <constraint firstItem="D3n-k3-IVQ" firstAttribute="trailing" secondItem="HeQ-Mv-eRL" secondAttribute="trailing" constant="20" id="Q9H-nf-7Gx"/>
+                            <constraint firstItem="HeQ-Mv-eRL" firstAttribute="top" secondItem="D3n-k3-IVQ" secondAttribute="top" constant="60" id="TXF-69-tFR"/>
+                            <constraint firstItem="YoC-M2-EdU" firstAttribute="leading" secondItem="D3n-k3-IVQ" secondAttribute="leading" constant="80" id="VI7-Ku-ZoE"/>
+                            <constraint firstItem="JQL-h1-6yB" firstAttribute="centerX" secondItem="EiC-zq-bqb" secondAttribute="centerX" id="Yvo-rF-0Qv"/>
+                            <constraint firstItem="EiC-zq-bqb" firstAttribute="leading" secondItem="D3n-k3-IVQ" secondAttribute="leading" constant="60" id="Z7A-VU-I5v"/>
+                            <constraint firstItem="ym3-zH-BMd" firstAttribute="centerX" secondItem="po7-Ap-Dqa" secondAttribute="centerX" id="hYc-R7-cwb"/>
+                            <constraint firstItem="EiC-zq-bqb" firstAttribute="top" secondItem="YoC-M2-EdU" secondAttribute="bottom" constant="100" id="jv4-Sk-L3o"/>
+                            <constraint firstItem="D3n-k3-IVQ" firstAttribute="trailing" secondItem="EiC-zq-bqb" secondAttribute="trailing" constant="60" id="qrO-06-XHZ"/>
+                            <constraint firstItem="EiC-zq-bqb" firstAttribute="top" secondItem="JQL-h1-6yB" secondAttribute="bottom" constant="18" id="u6p-0b-Ya8"/>
+                            <constraint firstItem="HeQ-Mv-eRL" firstAttribute="leading" secondItem="po7-Ap-Dqa" secondAttribute="leading" constant="20" id="uRN-Am-h4f"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="deviceLabel" destination="HeQ-Mv-eRL" id="FQS-T3-xrP"/>
+                        <outlet property="progressLabel" destination="JQL-h1-6yB" id="sUN-1N-mLP"/>
+                        <outlet property="progressView" destination="EiC-zq-bqb" id="6Xb-cD-Oa3"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="teD-WZ-jcZ" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="992.75362318840587" y="138.61607142857142"/>
+        </scene>
+    </scenes>
+    <resources>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="systemRedColor">
+            <color red="1" green="0.23137254901960785" blue="0.18823529411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+    </resources>
+</document>

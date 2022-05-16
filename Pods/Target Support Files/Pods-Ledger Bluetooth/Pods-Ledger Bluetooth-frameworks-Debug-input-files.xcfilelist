@@ -1,0 +1,3 @@
+${PODS_ROOT}/Target Support Files/Pods-Ledger Bluetooth/Pods-Ledger Bluetooth-frameworks.sh
+${BUILT_PRODUCTS_DIR}/Bluejay/Bluejay.framework
+${BUILT_PRODUCTS_DIR}/Starscream/Starscream.framework
