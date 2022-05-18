@@ -31,7 +31,9 @@ class ViewController: UIViewController {
         guard deviceConnecting == nil else { return }
         deviceConnecting = device
         
-        transport.open(withPeripheral: device) { [weak self] peripheralConnected in
+        transport.connect(toPeripheralID: device) {
+            print("Device disconnected!")
+        } success: { [weak self] peripheralConnected in
             self?.connectedDevice = peripheralConnected
             self?.performSegue(withIdentifier: "connectedDeviceSegue", sender: nil)
             self?.deviceConnecting = nil
@@ -44,6 +46,7 @@ class ViewController: UIViewController {
             }
             self?.deviceConnecting = nil
         }
+
     }
 
     @IBAction func findDevicesButtonTapped(_ sender: Any) {

@@ -25,28 +25,26 @@ protocol BleTransportProtocol {
     /// Attempt to connect to a given peripheral.
     ///
     /// - Parameter peripheral: The peripheral to connect to.
-    func open(withPeripheral peripheral: PeripheralIdentifier, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
+    func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
     
     /// Convenience method to `scan` for devices and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
+    func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
     
-    /// Continuously listen to messages sent by the passed characteristic
+    /// Send an `APDU` and wait for the response from the device.
     /// - Parameters:
-    ///   - to: Characteristic to listen.
-    ///   - apduReceived: Callback called when an APDU is received from the device, will be called every time an APDU is received.
-    ///   - failure: Callback called when the connection failed.
-    func listen(to: CharacteristicIdentifier, apduReceived: @escaping APDUResponse, failure: @escaping ErrorResponse)
+    ///   - apduToSend: `APDU` to send.
+    ///   - callback: Callback that contains the result of the exchange.
+    func exchange(apdu apduToSend: APDU, callback: @escaping (Result<String, BleTransportError>) -> Void)
     
-    /// Send an `APDU` message to the specified characteristic.
+    /// Send an `APDU` message.
     /// - Parameters:
     ///   - apdu: `APDU` to send.
-    ///   - to: Characteristic to send the message to.
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func send(apdu: APDU, to: CharacteristicIdentifier, success: @escaping (()->()), failure: @escaping ErrorResponse)
+    func send(apdu: APDU, success: @escaping (()->()), failure: @escaping ErrorResponse)
     
     /// Disconnect from the passed device.
     /// - Parameters:

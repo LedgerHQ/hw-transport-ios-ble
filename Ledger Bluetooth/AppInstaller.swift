@@ -25,10 +25,6 @@ class AppInstaller {
     fileprivate var installing = false
     fileprivate var HSMNonce: Int = 0
     
-    fileprivate let notifyCharacteristic = CharacteristicIdentifier(uuid: "13d63400-2c97-0004-0001-4c6564676572", service: ServiceIdentifier(uuid: "13D63400-2C97-0004-0000-4C6564676572"))
-    //fileprivate let writeCharacteristic = CharacteristicIdentifier(uuid: "13d63400-2c97-0004-0002-4c6564676572", service: ServiceIdentifier(uuid: "13D63400-2C97-0004-0000-4C6564676572"))
-    fileprivate let writeCharacteristic = CharacteristicIdentifier(uuid: "13d63400-2c97-0004-0003-4c6564676572", service: ServiceIdentifier(uuid: "13D63400-2C97-0004-0000-4C6564676572"))
-    
     init(transport: BleTransportProtocol, installingProtocol: InstallingProtocol) {
         self.installingProtocol = installingProtocol
         self.transport = transport
@@ -41,63 +37,53 @@ class AppInstaller {
         self.websocket = WebSocket(request: request)
         self.websocket?.delegate = self
         
-        self.prepareToListen()
         self.websocket?.connect()
     }
     
-    fileprivate func prepareToListen() {
-        self.transport.listen(to: notifyCharacteristic) { [weak self] apdu in
-            self?.handleDeviceResponse(apdu)
-        } failure: { error in
-            if let error = error {
-                print("Failed to listen with error: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    fileprivate func handleDeviceResponse(_ apdu: APDU) {
-        let hex = apdu.data.hexEncodedString()
+    fileprivate func handleDeviceResponse(_ hex: String) {
         print("NANO -> \(hex)")
         
-        let offset = self.lastBLEResponse == "" ? 10 : 6
-        let cleanAPDU = String(hex[hex.index(hex.startIndex, offsetBy: offset)...])
-        self.lastBLEResponse += cleanAPDU
-        
-        // TODO: Include error cases
-        if self.lastBLEResponse.hasSuffix("9000") {
+        if hex.hasSuffix("9000") {
             if self.installing {
                 /// Continue writing from our queue.
                 self.nextFrame()
             } else {
                 // Respond back to the HSM
-                let responseWithoutStatus = self.lastBLEResponse.dropLast(4)
+                let responseWithoutStatus = hex.dropLast(4)
                 let response = "{\"nonce\":\(self.HSMNonce),\"response\":\"success\",\"data\":\"\(responseWithoutStatus)\"}"
                 print("HSM  -> \(response)")
                 self.websocket?.write(string: response)
             }
-            // Consider the response complete
-            self.lastBLEResponse = ""
+        } else {
+            print("Got an exchange response with an error, response: \(hex)")
         }
     }
     
     fileprivate func nextFrame() {
         guard let currentAPDU = self.APDUQueue.first else { self.APDUQueue.removeAll(); return }
         print("NANO <- \(currentAPDU.toBluetoothData().hexEncodedString())")
-        self.transport.send(apdu: currentAPDU, to: writeCharacteristic) { [weak self] in
+        self.transport.exchange(apdu: currentAPDU) { [weak self] result in
             guard let self = self else { return }
-            currentAPDU.next()
-            if currentAPDU.isEmpty {
+            switch result {
+            case .success(let hexResponse):
                 self.APDUQueue.removeFirst()
+                
                 let completedAPDUcount = self.bulkAPDUcount - self.APDUQueue.count
                 self.installingProtocol.progressUpdated(percentageCompleted: Float(completedAPDUcount) / Float(self.bulkAPDUcount), finished: self.APDUQueue.count == 0 && self.installing)
-            } else {
-                /// Only continue if it's a frame from same apdu
-                self.nextFrame()
-            }
-        } failure: { [weak self] error in
-            self?.APDUQueue.removeAll()
-            if let error = error {
-                print("Error when writing: \(error)")
+                
+                self.handleDeviceResponse(hexResponse)
+            case .failure(let error):
+                self.APDUQueue.removeAll()
+                switch error {
+                case .readError(let description):
+                    print(description)
+                case .writeError(let description):
+                    print(description)
+                case .pendingActionOnDevice:
+                    print("PENDING DEVICE ACTION!")
+                default:
+                    print("Another error thrown!")
+                }
             }
         }
     }

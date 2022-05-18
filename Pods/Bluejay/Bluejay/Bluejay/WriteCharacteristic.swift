@@ -51,6 +51,12 @@ class WriteCharacteristic<T: Sendable>: Operation {
             fail(BluejayError.missingCharacteristic(characteristicIdentifier))
             return
         }
+        
+        let property: CBCharacteristicProperties = type == .withoutResponse ? .writeWithoutResponse : .write
+        guard characteristic.properties.contains(property) else {
+            fail(BluejayError.missingCharacteristicProperty(property))
+            return
+        }
 
         state = .running
 

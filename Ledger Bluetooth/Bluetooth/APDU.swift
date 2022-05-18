@@ -10,9 +10,9 @@ import Bluejay
 
 public class APDU: Sendable, Receivable {
     
-    public let data: Data                                // The APDU data to send or receive.
-    public let mtuSize: Int = 153                        // The maximum number of bytes (including the tag and frame index) we can send.
-    public var chunks: [Data] = []                       // Split the APDU into frames.
+    public let data: Data                   /// The APDU data to send or receive.
+    public let mtuSize: Int = 153           /// The maximum number of bytes (including the tag and frame index) we can send.
+    public var chunks: [Data] = []          /// The APDU data split into frames smaller than `mtuSize`
     
     public var isEmpty: Bool {
         chunks.isEmpty
@@ -33,6 +33,7 @@ public class APDU: Sendable, Receivable {
     
     required public init(bluetoothData: Data) throws {
         self.data = bluetoothData
+        self.chunks = self.chunkAPDU(data: bluetoothData)
     }
     
     // When called by the Bluejay library it will return the current frame to send
