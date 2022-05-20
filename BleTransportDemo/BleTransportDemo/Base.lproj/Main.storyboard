@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="20037" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="zzt-nN-Fk1">
+    <device id="retina6_1" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="20020"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Scan View Controller-->
+        <scene sceneID="nLL-8l-3sN">
+            <objects>
+                <viewController id="zzt-nN-Fk1" customClass="ScanViewController" customModule="BleTransportDemo" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="FbZ-8d-QBh">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tmQ-M2-xcr">
+                                <rect key="frame" x="114" y="191.5" width="186" height="50"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Find devices">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="30"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="findDevicesButtonTapped:" destination="zzt-nN-Fk1" eventType="touchUpInside" id="5fz-pX-0zu"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Click the button to find devices" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mDz-sR-N4P">
+                                <rect key="frame" x="20" y="104" width="374" height="27.5"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="23"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" bounces="NO" showsHorizontalScrollIndicator="NO" showsVerticalScrollIndicator="NO" bouncesZoom="NO" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="d5b-dZ-Vq0">
+                                <rect key="frame" x="0.0" y="404.5" width="414" height="491.5"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <prototypes>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="deviceCell" rowHeight="78" id="HuI-MQ-L3h" customClass="DeviceFoundTableViewCell" customModule="Ledger_Bluetooth" customModuleProvider="target">
+                                        <rect key="frame" x="0.0" y="44.5" width="414" height="78"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="HuI-MQ-L3h" id="rL5-qe-r3L">
+                                            <rect key="frame" x="0.0" y="0.0" width="414" height="78"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3q9-hu-23R">
+                                                    <rect key="frame" x="28" y="26" width="50" height="26"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="21"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" animating="YES" style="large" translatesAutoresizingMaskIntoConstraints="NO" id="rym-IB-5rT">
+                                                    <rect key="frame" x="321.5" y="20.5" width="37" height="37"/>
+                                                </activityIndicatorView>
+                                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="aDs-Ry-wJe">
+                                                    <rect key="frame" x="293.5" y="11" width="92.5" height="56"/>
+                                                    <state key="normal" title="Button"/>
+                                                    <buttonConfiguration key="configuration" style="plain" title="Connect">
+                                                        <fontDescription key="titleFontDescription" type="system" pointSize="18"/>
+                                                    </buttonConfiguration>
+                                                    <connections>
+                                                        <action selector="connectButtonTapped:" destination="HuI-MQ-L3h" eventType="touchUpInside" id="ztq-eD-2BB"/>
+                                                    </connections>
+                                                </button>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="rym-IB-5rT" firstAttribute="centerX" secondItem="aDs-Ry-wJe" secondAttribute="centerX" id="0tF-Eq-tPo"/>
+                                                <constraint firstAttribute="bottomMargin" secondItem="aDs-Ry-wJe" secondAttribute="bottom" id="8rD-Eg-WnR"/>
+                                                <constraint firstItem="3q9-hu-23R" firstAttribute="centerY" secondItem="rL5-qe-r3L" secondAttribute="centerY" id="AbO-Sp-DzE"/>
+                                                <constraint firstItem="rym-IB-5rT" firstAttribute="centerY" secondItem="aDs-Ry-wJe" secondAttribute="centerY" id="C8S-HB-zsN"/>
+                                                <constraint firstAttribute="trailingMargin" secondItem="aDs-Ry-wJe" secondAttribute="trailing" constant="8" id="Jz5-ce-xpl"/>
+                                                <constraint firstItem="aDs-Ry-wJe" firstAttribute="top" secondItem="rL5-qe-r3L" secondAttribute="topMargin" id="QSB-CL-ROz"/>
+                                                <constraint firstItem="aDs-Ry-wJe" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="3q9-hu-23R" secondAttribute="trailing" constant="8" id="U0p-2F-VvQ"/>
+                                                <constraint firstItem="3q9-hu-23R" firstAttribute="leading" secondItem="rL5-qe-r3L" secondAttribute="leadingMargin" constant="8" id="ZCt-iy-urt"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                        <connections>
+                                            <outlet property="activityIndicator" destination="rym-IB-5rT" id="Rs9-xs-ueP"/>
+                                            <outlet property="connectButton" destination="aDs-Ry-wJe" id="A5H-se-SAT"/>
+                                            <outlet property="deviceNameLabel" destination="3q9-hu-23R" id="8da-C9-Tgl"/>
+                                        </connections>
+                                    </tableViewCell>
+                                </prototypes>
+                                <connections>
+                                    <outlet property="dataSource" destination="zzt-nN-Fk1" id="toY-P7-kiY"/>
+                                    <outlet property="delegate" destination="zzt-nN-Fk1" id="w9i-8Y-FQi"/>
+                                </connections>
+                            </tableView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Devices found:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="hWx-8y-RpG">
+                                <rect key="frame" x="144" y="341.5" width="126" height="23"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="19"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="jS2-4m-dHd"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="hWx-8y-RpG" firstAttribute="centerX" secondItem="FbZ-8d-QBh" secondAttribute="centerX" id="9Gb-WH-fwo"/>
+                            <constraint firstItem="mDz-sR-N4P" firstAttribute="leading" secondItem="jS2-4m-dHd" secondAttribute="leading" constant="20" id="CG4-bh-iw1"/>
+                            <constraint firstAttribute="bottom" secondItem="d5b-dZ-Vq0" secondAttribute="bottom" id="GBd-nX-sCq"/>
+                            <constraint firstItem="d5b-dZ-Vq0" firstAttribute="trailing" secondItem="jS2-4m-dHd" secondAttribute="trailing" id="QR8-0h-XWq"/>
+                            <constraint firstItem="tmQ-M2-xcr" firstAttribute="centerX" secondItem="FbZ-8d-QBh" secondAttribute="centerX" id="ZW6-lM-hG9"/>
+                            <constraint firstItem="jS2-4m-dHd" firstAttribute="trailing" secondItem="mDz-sR-N4P" secondAttribute="trailing" constant="20" id="aUL-4o-uXz"/>
+                            <constraint firstItem="mDz-sR-N4P" firstAttribute="top" secondItem="jS2-4m-dHd" secondAttribute="top" constant="60" id="bei-Yt-3PY"/>
+                            <constraint firstItem="d5b-dZ-Vq0" firstAttribute="top" secondItem="hWx-8y-RpG" secondAttribute="bottom" constant="40" id="fFY-iN-v5r"/>
+                            <constraint firstItem="d5b-dZ-Vq0" firstAttribute="leading" secondItem="jS2-4m-dHd" secondAttribute="leading" id="fWm-xD-NEt"/>
+                            <constraint firstItem="hWx-8y-RpG" firstAttribute="top" secondItem="tmQ-M2-xcr" secondAttribute="bottom" constant="100" id="odB-Vw-Ihk"/>
+                            <constraint firstItem="tmQ-M2-xcr" firstAttribute="top" secondItem="mDz-sR-N4P" secondAttribute="bottom" constant="60" id="sWg-ig-8Jt"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="devicesFoundLabel" destination="hWx-8y-RpG" id="odh-QR-cHc"/>
+                        <outlet property="devicesTableView" destination="d5b-dZ-Vq0" id="Z1Q-Uh-SYS"/>
+                        <outlet property="findDevicesButton" destination="tmQ-M2-xcr" id="HcX-l8-qHf"/>
+                        <outlet property="infoLabel" destination="mDz-sR-N4P" id="UyG-A8-r3i"/>
+                        <segue destination="iNh-MV-JUq" kind="presentation" identifier="connectedDeviceSegue" modalPresentationStyle="overFullScreen" id="gVs-Tc-pMM"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="0zf-El-ZAa" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53.623188405797109" y="138.61607142857142"/>
+        </scene>
+        <!--Connected View Controller-->
+        <scene sceneID="7P0-cA-mPo">
+            <objects>
+                <viewController id="iNh-MV-JUq" customClass="ConnectedViewController" customModule="Ledger_Bluetooth" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="LaS-7o-G0v">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CLb-Pn-vqJ">
+                                <rect key="frame" x="149.5" y="788.5" width="115" height="35.5"/>
+                                <color key="tintColor" systemColor="systemRedColor"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Disconnect">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="18"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="disconnectButtonTapped:" destination="iNh-MV-JUq" eventType="touchUpInside" id="PpS-ZF-ubA"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Connected to" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tkW-Mb-qJ7">
+                                <rect key="frame" x="20" y="104" width="374" height="27.5"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="23"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Rvc-ah-X8m">
+                                <rect key="frame" x="80" y="429" width="254" height="38"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain">
+                                    <attributedString key="attributedTitle">
+                                        <fragment content="Install BTC app">
+                                            <attributes>
+                                                <font key="NSFont" metaFont="system" size="20"/>
+                                                <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="natural" tighteningFactorForTruncation="0.0"/>
+                                            </attributes>
+                                        </fragment>
+                                    </attributedString>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="installAppButtonTapped:" destination="iNh-MV-JUq" eventType="touchUpInside" id="4QH-TG-i21"/>
+                                </connections>
+                            </button>
+                            <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mJw-wh-xsk">
+                                <rect key="frame" x="60" y="567" width="294" height="4"/>
+                            </progressView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Preparing..." textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1BT-iR-f0i">
+                                <rect key="frame" x="153" y="522" width="108" height="27"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="22"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Csn-S1-LbA"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="Rvc-ah-X8m" firstAttribute="leading" secondItem="Csn-S1-LbA" secondAttribute="leading" constant="80" id="0xr-Kl-w8b"/>
+                            <constraint firstItem="mJw-wh-xsk" firstAttribute="leading" secondItem="Csn-S1-LbA" secondAttribute="leading" constant="60" id="4fo-oe-hbc"/>
+                            <constraint firstItem="1BT-iR-f0i" firstAttribute="centerX" secondItem="mJw-wh-xsk" secondAttribute="centerX" id="Az0-Ul-r8N"/>
+                            <constraint firstItem="Csn-S1-LbA" firstAttribute="trailing" secondItem="tkW-Mb-qJ7" secondAttribute="trailing" constant="20" id="Dij-SR-QuT"/>
+                            <constraint firstItem="mJw-wh-xsk" firstAttribute="top" secondItem="Rvc-ah-X8m" secondAttribute="bottom" constant="100" id="GEd-yi-S3N"/>
+                            <constraint firstItem="Csn-S1-LbA" firstAttribute="bottom" secondItem="CLb-Pn-vqJ" secondAttribute="bottom" constant="38" id="MZJ-Xw-lTn"/>
+                            <constraint firstItem="mJw-wh-xsk" firstAttribute="top" secondItem="1BT-iR-f0i" secondAttribute="bottom" constant="18" id="aoz-w7-Jur"/>
+                            <constraint firstItem="Csn-S1-LbA" firstAttribute="trailing" secondItem="Rvc-ah-X8m" secondAttribute="trailing" constant="80" id="bDd-Jc-dnk"/>
+                            <constraint firstItem="Rvc-ah-X8m" firstAttribute="centerY" secondItem="LaS-7o-G0v" secondAttribute="centerY" id="eAQ-1D-PBo"/>
+                            <constraint firstItem="tkW-Mb-qJ7" firstAttribute="leading" secondItem="LaS-7o-G0v" secondAttribute="leading" constant="20" id="ecX-vu-nqL"/>
+                            <constraint firstItem="tkW-Mb-qJ7" firstAttribute="top" secondItem="Csn-S1-LbA" secondAttribute="top" constant="60" id="jYf-T3-alh"/>
+                            <constraint firstItem="CLb-Pn-vqJ" firstAttribute="centerX" secondItem="LaS-7o-G0v" secondAttribute="centerX" id="k9N-os-zQY"/>
+                            <constraint firstItem="Csn-S1-LbA" firstAttribute="trailing" secondItem="mJw-wh-xsk" secondAttribute="trailing" constant="60" id="r2a-vP-3uM"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="deviceLabel" destination="tkW-Mb-qJ7" id="7Zi-W0-hWc"/>
+                        <outlet property="progressLabel" destination="1BT-iR-f0i" id="f2R-b5-WXd"/>
+                        <outlet property="progressView" destination="mJw-wh-xsk" id="bHa-Sg-szn"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="d5F-wv-VwN" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="992.75362318840587" y="138.61607142857142"/>
+        </scene>
+    </scenes>
+    <resources>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="systemRedColor">
+            <color red="1" green="0.23137254901960785" blue="0.18823529411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+    </resources>
+</document>
