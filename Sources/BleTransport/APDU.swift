@@ -1,6 +1,6 @@
 //
 //  APDU.swift
-//  Ledger Bluetooth
+//  BleTransport
 //
 //  Created by Dante Puglisi on 5/10/22.
 //

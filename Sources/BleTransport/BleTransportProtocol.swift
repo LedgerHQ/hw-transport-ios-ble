@@ -1,6 +1,6 @@
 //
 //  BleTransportProtocol.swift
-//  Ledger Bluetooth
+//  BleTransport
 //
 //  Created by Dante Puglisi on 5/12/22.
 //
@@ -16,6 +16,8 @@ public typealias ErrorResponse = ((Error?)->())
 public protocol BleTransportProtocol {
     
     var isBluetoothAvailable: Bool { get }
+    
+    init(configuration: BleTransportConfiguration)
     
     /// Scan for reachable devices with the services provided.
     ///

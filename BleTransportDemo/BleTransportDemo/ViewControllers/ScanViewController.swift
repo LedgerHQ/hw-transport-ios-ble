@@ -20,19 +20,25 @@ class ScanViewController: UIViewController {
     var deviceConnecting: PeripheralIdentifier?
     var connectedDevice: PeripheralIdentifier?
     
-    let transport: BleTransportProtocol = BleTransport()
+    let configuration = BleTransportConfiguration(services: [BleService(serviceUUID: "13D63400-2C97-0004-0000-4C6564676572",
+                                                                        notifyUUID: "13d63400-2c97-0004-0001-4c6564676572",
+                                                                        writeWithResponseUUID: "13d63400-2c97-0004-0002-4c6564676572",
+                                                                        writeWithoutResponseUUID: "13d63400-2c97-0004-0003-4c6564676572")])
+    var transport: BleTransportProtocol? = nil
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         devicesFoundLabel.alpha = 0.0
+        
+        transport = BleTransport(configuration: configuration)
     }
     
     fileprivate func connectToDevice(_ device: PeripheralIdentifier) {
         guard deviceConnecting == nil else { return }
         deviceConnecting = device
         
-        transport.connect(toPeripheralID: device) {
+        transport?.connect(toPeripheralID: device) {
             print("Device disconnected!")
         } success: { [weak self] peripheralConnected in
             self?.connectedDevice = peripheralConnected
@@ -51,7 +57,7 @@ class ScanViewController: UIViewController {
     }
 
     @IBAction func findDevicesButtonTapped(_ sender: Any) {
-        if transport.isBluetoothAvailable {
+        if let transport = transport, transport.isBluetoothAvailable {
             self.scanningStateChanged(isScanning: true)
             transport.scan { [weak self] discoveries in
                 self?.devices = discoveries
@@ -74,7 +80,7 @@ class ScanViewController: UIViewController {
                 destVC.connectedDevice = connectedDevice
                 destVC.transport = self.transport
                 destVC.disconnectTapped = { [weak self] deviceToDisconnect in
-                    self?.transport.disconnect(immediate: true, completion: { error in
+                    self?.transport?.disconnect(immediate: true, completion: { error in
                         if let error = error {
                             print("Couldn't disconnect with error: \(error)")
                         } else {
