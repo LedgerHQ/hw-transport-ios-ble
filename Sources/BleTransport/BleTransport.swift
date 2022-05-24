@@ -72,6 +72,10 @@ public enum BleTransportError: Error {
         })
     }
     
+    public func stopScanning() {
+        self.bluejay.stopScanning()
+    }
+    
     /*public func open(withPeripheral peripheral: PeripheralIdentifier, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
         if self.bluejay.isScanning {
             self.bluejay.stopScanning()
