@@ -7,9 +7,10 @@
 
 import Foundation
 import Bluejay
+import CoreBluetooth
 
 public typealias PeripheralResponse = ((PeripheralIdentifier)->())
-public typealias PeripheralsResponse = (([PeripheralIdentifier])->())
+public typealias PeripheralsWithServicesResponse = (([(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)])->())
 public typealias APDUResponse = ((APDU)->())
 public typealias ErrorResponse = ((Error?)->())
 
@@ -22,7 +23,7 @@ public protocol BleTransportProtocol {
     /// Scan for reachable devices with the services provided.
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered devices changes.
-    func scan(callback: @escaping PeripheralsResponse, stopped: @escaping (()->()))
+    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping (()->()))
     
     /// Stop scanning for reachable devices.
     ///

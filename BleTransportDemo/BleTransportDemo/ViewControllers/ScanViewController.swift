@@ -8,6 +8,7 @@
 import UIKit
 import Bluejay
 import BleTransport
+import CoreBluetooth
 
 class ScanViewController: UIViewController {
 
@@ -16,7 +17,7 @@ class ScanViewController: UIViewController {
     @IBOutlet weak var infoLabel: UILabel!
     @IBOutlet weak var devicesFoundLabel: UILabel!
     
-    var devices = [PeripheralIdentifier]()
+    var devicesServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
     var deviceConnecting: PeripheralIdentifier?
     var connectedDevice: PeripheralIdentifier?
     
@@ -60,7 +61,7 @@ class ScanViewController: UIViewController {
         if let transport = transport, transport.isBluetoothAvailable {
             self.scanningStateChanged(isScanning: true)
             transport.scan { [weak self] discoveries in
-                self?.devices = discoveries
+                self?.devicesServicesTuple = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
                 self?.devicesTableView.reloadData()
             } stopped: { [weak self] in
@@ -126,13 +127,13 @@ class ScanViewController: UIViewController {
 
 extension ScanViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return devices.count
+        return devicesServicesTuple.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "deviceCell") as! DeviceFoundTableViewCell
         
-        let rowDevice = devices[indexPath.row]
+        let rowDevice = devicesServicesTuple[indexPath.row].peripheral
         cell.setupCell(deviceName: rowDevice.name, connecting: rowDevice == deviceConnecting)
         
         cell.connectTapped = { [weak self] in

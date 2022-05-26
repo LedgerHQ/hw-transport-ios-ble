@@ -11,8 +11,9 @@ import Bluejay
 public class APDU: Sendable, Receivable {
     
     public let data: Data                   /// The APDU data to send or receive.
-    public let mtuSize: Int = 153           /// The maximum number of bytes (including the tag and frame index) we can send.
     public var chunks: [Data] = []          /// The APDU data split into frames smaller than `mtuSize`
+    
+    static var mtuSize: Int = 153           /// The maximum number of bytes (including the tag and frame index) we can send. This should be updated every time we connect to a new device.
     
     public var isEmpty: Bool {
         chunks.isEmpty
@@ -56,7 +57,7 @@ public class APDU: Sendable, Receivable {
         var ind = UInt8(0)             // Frame counter
         
         while(hi < size) {
-            let maxDataForFrame = ind == 0 ? (self.mtuSize - 5) : (self.mtuSize - 3)
+            let maxDataForFrame = ind == 0 ? (APDU.mtuSize - 5) : (APDU.mtuSize - 3)
             var messageData = Data()
             messageData.append(Data(head))
             messageData.append(ind == 0 ? Data([0x00,0x00,0x00]) : Data([0x00]))
