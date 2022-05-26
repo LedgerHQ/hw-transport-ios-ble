@@ -68,7 +68,6 @@ public enum BleTransportError: Error {
     
     // MARK: - Public Methods
     
-    @objc
     public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping (()->())) {
         guard !self.bluejay.isScanning else { return }
         self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
@@ -96,7 +95,6 @@ public enum BleTransportError: Error {
         self.bluejay.stopScanning()
     }
     
-    @objc
     public func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
         scan { [weak self] discoveries in
             guard let firstDiscovery = discoveries.first else { failure(nil); return }
@@ -108,7 +106,6 @@ public enum BleTransportError: Error {
         }
     }
     
-    @objc
     public func exchange(apdu apduToSend: APDU, callback: @escaping (Result<String, BleTransportError>) -> Void) {
         guard !isExchanging else {
             callback(.failure(.pendingActionOnDevice))
@@ -205,7 +202,6 @@ public enum BleTransportError: Error {
         }
     }
     
-    @objc
     public func send(apdu: APDU, success: @escaping (()->()), failure: @escaping ErrorResponse) {
         self.send(value: apdu, type: .withoutResponse, firstPass: true, success: success, failure: failure)
     }
@@ -242,7 +238,6 @@ public enum BleTransportError: Error {
         }
     }
     
-    @objc
     public func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
         if self.bluejay.isScanning {
             self.bluejay.stopScanning()
