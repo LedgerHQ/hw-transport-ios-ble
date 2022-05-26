@@ -9,9 +9,9 @@ import Foundation
 import Bluejay
 
 @objc
-class DeviceIdentifier: NSObject {
-    let uuid: UUID
-    let name: String
+public class DeviceIdentifier: NSObject {
+    public let uuid: UUID
+    public let name: String
     
     init(uuid: UUID, name: String?) {
         self.uuid = uuid
@@ -21,6 +21,10 @@ class DeviceIdentifier: NSObject {
     init(peripheralIdentifier: PeripheralIdentifier) {
         self.uuid = peripheralIdentifier.uuid
         self.name = peripheralIdentifier.name
+    }
+    
+    func peripheralIdentifier() -> PeripheralIdentifier {
+        return PeripheralIdentifier(uuid: self.uuid, name: self.name)
     }
 }
 

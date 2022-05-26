@@ -8,7 +8,8 @@
 import Foundation
 import Bluejay
 
-public class APDU: Sendable, Receivable {
+@objc
+public class APDU: NSObject, Sendable, Receivable {
     
     public let data: Data                   /// The APDU data to send or receive.
     public var chunks: [Data] = []          /// The APDU data split into frames smaller than `mtuSize`
@@ -22,6 +23,9 @@ public class APDU: Sendable, Receivable {
     public init(data: [UInt8]) {
         let dataReceived = Data(data)
         self.data = dataReceived
+        
+        super.init()
+        
         self.chunks = self.chunkAPDU(data: dataReceived)
     }
     
@@ -29,11 +33,17 @@ public class APDU: Sendable, Receivable {
     public init(raw: String) {
         let dataReceived = Data(raw.UInt8Array())
         self.data = dataReceived
+        
+        super.init()
+        
         self.chunks = self.chunkAPDU(data: dataReceived)
     }
     
     required public init(bluetoothData: Data) throws {
         self.data = bluetoothData
+        
+        super.init()
+        
         self.chunks = self.chunkAPDU(data: bluetoothData)
     }
     

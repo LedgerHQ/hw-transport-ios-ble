@@ -9,8 +9,8 @@ import Foundation
 import Bluejay
 import CoreBluetooth
 
-public typealias PeripheralResponse = ((PeripheralIdentifier)->())
-public typealias PeripheralsWithServicesResponse = (([(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)])->())
+public typealias DeviceResponse = ((DeviceIdentifier)->())
+public typealias DevicesWithServicesResponse = (([DeviceWithService])->())
 public typealias APDUResponse = ((APDU)->())
 public typealias ErrorResponse = ((Error?)->())
 
@@ -23,7 +23,7 @@ public protocol BleTransportProtocol {
     /// Scan for reachable devices with the services provided.
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered devices changes.
-    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping (()->()))
+    func scan(callback: @escaping DevicesWithServicesResponse, stopped: @escaping (()->()))
     
     /// Stop scanning for reachable devices.
     ///
@@ -32,19 +32,20 @@ public protocol BleTransportProtocol {
     /// Attempt to connect to a given peripheral.
     ///
     /// - Parameter peripheral: The peripheral to connect to.
-    func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
+    func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: (()->())?, success: @escaping DeviceResponse, failure: @escaping ErrorResponse)
     
     /// Convenience method to `scan` for devices and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
+    func create(disconnectedCallback: @escaping (()->()), success: @escaping DeviceResponse, failure: @escaping ErrorResponse)
     
     /// Send an `APDU` and wait for the response from the device.
     /// - Parameters:
     ///   - apduToSend: `APDU` to send.
-    ///   - callback: Callback that contains the result of the exchange.
-    func exchange(apdu apduToSend: APDU, callback: @escaping (Result<String, BleTransportError>) -> Void)
+    ///   - success: Callback called when the exchange is successful with the response from the device.
+    ///   - failure: Callback called when the exchange failed.
+    func exchange(apdu apduToSend: APDU, success: @escaping ((String)->()), failure: @escaping ((NSError)->()))
     
     /// Send an `APDU` message.
     /// - Parameters:

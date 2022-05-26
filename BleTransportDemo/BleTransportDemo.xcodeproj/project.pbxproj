@@ -18,6 +18,8 @@
 		93811E462836E14A00A81145 /* ScanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93811E452836E14A00A81145 /* ScanViewController.swift */; };
 		93811E492836E1EC00A81145 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = 93811E482836E1EC00A81145 /* Starscream */; };
 		93811E4E2836E42200A81145 /* DeviceFoundTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93811E4D2836E42200A81145 /* DeviceFoundTableViewCell.swift */; };
+		93C79116283FC72E00B74278 /* RCTBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 93C79115283FC72E00B74278 /* RCTBridge.m */; };
+		93C79118283FCE5200B74278 /* BleTransportBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C79117283FCE5200B74278 /* BleTransportBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +35,9 @@
 		93811E402836E0C500A81145 /* ConnectedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedViewController.swift; sourceTree = "<group>"; };
 		93811E452836E14A00A81145 /* ScanViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScanViewController.swift; sourceTree = "<group>"; };
 		93811E4D2836E42200A81145 /* DeviceFoundTableViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceFoundTableViewCell.swift; sourceTree = "<group>"; };
+		93C79114283FC72D00B74278 /* BleTransportDemo-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BleTransportDemo-Bridging-Header.h"; sourceTree = "<group>"; };
+		93C79115283FC72E00B74278 /* RCTBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RCTBridge.m; sourceTree = "<group>"; };
+		93C79117283FCE5200B74278 /* BleTransportBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleTransportBridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +79,7 @@
 				93811E4A2836E40400A81145 /* ViewControllers */,
 				93811E4C2836E41B00A81145 /* Cells */,
 				93811E4B2836E40E00A81145 /* Logic */,
+				93C79112283FC6BD00B74278 /* Bridge */,
 				93811E2C2836DC0B00A81145 /* Main.storyboard */,
 				93811E2F2836DC0D00A81145 /* Assets.xcassets */,
 				93811E312836DC0D00A81145 /* LaunchScreen.storyboard */,
@@ -122,6 +128,16 @@
 			path = Cells;
 			sourceTree = "<group>";
 		};
+		93C79112283FC6BD00B74278 /* Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				93C79117283FCE5200B74278 /* BleTransportBridge.swift */,
+				93C79115283FC72E00B74278 /* RCTBridge.m */,
+				93C79114283FC72D00B74278 /* BleTransportDemo-Bridging-Header.h */,
+			);
+			path = Bridge;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -158,6 +174,7 @@
 				TargetAttributes = {
 					93811E222836DC0B00A81145 = {
 						CreatedOnToolsVersion = 13.3.1;
+						LastSwiftMigration = 1330;
 					};
 				};
 			};
@@ -200,8 +217,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				93C79118283FCE5200B74278 /* BleTransportBridge.swift in Sources */,
 				93811E4E2836E42200A81145 /* DeviceFoundTableViewCell.swift in Sources */,
 				93811E442836E0C600A81145 /* AppInstaller.swift in Sources */,
+				93C79116283FC72E00B74278 /* RCTBridge.m in Sources */,
 				93811E432836E0C600A81145 /* ConnectedViewController.swift in Sources */,
 				93811E462836E14A00A81145 /* ScanViewController.swift in Sources */,
 				93811E272836DC0B00A81145 /* AppDelegate.swift in Sources */,
@@ -350,6 +369,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K82DRMV4FX;
@@ -369,6 +389,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = LedgerHQ.BleTransportDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "BleTransportDemo/Bridge/BleTransportDemo-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -379,6 +401,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K82DRMV4FX;
@@ -398,6 +421,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = LedgerHQ.BleTransportDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "BleTransportDemo/Bridge/BleTransportDemo-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

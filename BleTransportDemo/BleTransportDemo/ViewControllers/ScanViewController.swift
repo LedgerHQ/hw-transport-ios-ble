@@ -17,9 +17,9 @@ class ScanViewController: UIViewController {
     @IBOutlet weak var infoLabel: UILabel!
     @IBOutlet weak var devicesFoundLabel: UILabel!
     
-    var devicesServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
-    var deviceConnecting: PeripheralIdentifier?
-    var connectedDevice: PeripheralIdentifier?
+    var deviceWithServiceArray = [DeviceWithService]()
+    var deviceConnecting: DeviceIdentifier?
+    var connectedDevice: DeviceIdentifier?
     
     let configuration = BleTransportConfiguration(services: [BleService(serviceUUID: "13D63400-2C97-0004-0000-4C6564676572",
                                                                         notifyUUID: "13d63400-2c97-0004-0001-4c6564676572",
@@ -35,11 +35,11 @@ class ScanViewController: UIViewController {
         transport = BleTransport(configuration: configuration)
     }
     
-    fileprivate func connectToDevice(_ device: PeripheralIdentifier) {
+    fileprivate func connectToDevice(_ device: DeviceIdentifier) {
         guard deviceConnecting == nil else { return }
         deviceConnecting = device
         
-        transport?.connect(toPeripheralID: device) {
+        transport?.connect(toDeviceID: device) {
             print("Device disconnected!")
         } success: { [weak self] peripheralConnected in
             self?.connectedDevice = peripheralConnected
@@ -61,7 +61,7 @@ class ScanViewController: UIViewController {
         if let transport = transport, transport.isBluetoothAvailable {
             self.scanningStateChanged(isScanning: true)
             transport.scan { [weak self] discoveries in
-                self?.devicesServicesTuple = discoveries
+                self?.deviceWithServiceArray = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
                 self?.devicesTableView.reloadData()
             } stopped: { [weak self] in
@@ -127,13 +127,13 @@ class ScanViewController: UIViewController {
 
 extension ScanViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return devicesServicesTuple.count
+        return deviceWithServiceArray.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "deviceCell") as! DeviceFoundTableViewCell
         
-        let rowDevice = devicesServicesTuple[indexPath.row].peripheral
+        let rowDevice = deviceWithServiceArray[indexPath.row].device
         cell.setupCell(deviceName: rowDevice.name, connecting: rowDevice == deviceConnecting)
         
         cell.connectTapped = { [weak self] in
