@@ -149,6 +149,7 @@ public enum BleTransportError: Error {
             guard let self = self else { return }
             if self.mtuWaitingForCallback != nil {
                 self.parseMTUresponse(apduReceived: apduReceived)
+                self.mtuWaitingForCallback = nil
                 return
             }
             /// This might be a partial response
