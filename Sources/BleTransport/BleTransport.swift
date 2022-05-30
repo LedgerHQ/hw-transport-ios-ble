@@ -54,7 +54,7 @@ public enum BleTransportError: Error {
     }
     
     fileprivate func bleInit(debugMode: Bool) {
-        if debugMode {
+        if !debugMode {
             self.bluejay.register(logObserver: self)
         }
         self.bluejay.start()
