@@ -21,14 +21,6 @@ public enum BleTransportError: Error {
     
     private let bluejay: Bluejay
     
-    /*
-    /// IDs
-    let nanoXService = ServiceIdentifier(uuid: "13D63400-2C97-0004-0000-4C6564676572")
-    fileprivate let notifyCharacteristic = CharacteristicIdentifier(uuid: "13d63400-2c97-0004-0001-4c6564676572", service: ServiceIdentifier(uuid: "13D63400-2C97-0004-0000-4C6564676572"))
-    fileprivate let writeCharacteristic = CharacteristicIdentifier(uuid: "13d63400-2c97-0004-0002-4c6564676572", service: ServiceIdentifier(uuid: "13D63400-2C97-0004-0000-4C6564676572"))
-    fileprivate let writeWithoutResponseCharacteristic = CharacteristicIdentifier(uuid: "13d63400-2c97-0004-0003-4c6564676572", service: ServiceIdentifier(uuid: "13D63400-2C97-0004-0000-4C6564676572"))
-    */
-    
     private let configuration: BleTransportConfiguration
     private var disconnectedCallback: (()->())?
     
@@ -52,17 +44,19 @@ public enum BleTransportError: Error {
     // MARK: - Initialization
     
     @objc
-    public required init(configuration: BleTransportConfiguration) {
+    public required init(configuration: BleTransportConfiguration?, debugMode: Bool) {
         self.bluejay = Bluejay()
-        self.configuration = configuration
+        self.configuration = configuration ?? BleTransportConfiguration.defaultConfig()
         
         super.init()
         
-        self.bleInit()
+        self.bleInit(debugMode: debugMode)
     }
     
-    fileprivate func bleInit() {
-        self.bluejay.register(logObserver: self)
+    fileprivate func bleInit(debugMode: Bool) {
+        if debugMode {
+            self.bluejay.register(logObserver: self)
+        }
         self.bluejay.start()
     }
     
@@ -72,18 +66,21 @@ public enum BleTransportError: Error {
         guard !self.bluejay.isScanning else { return }
         self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
             guard let self = self else { return .continue }
-            self.updatePeripheralsServicesTuple(discoveries: discoveries)
-            callback(self.peripheralsServicesTuple)
+            if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
+                callback(self.peripheralsServicesTuple)
+            }
             return .continue
         }, expired: { [weak self] discovery, discoveries in
             guard let self = self else { return .continue }
-            self.updatePeripheralsServicesTuple(discoveries: discoveries)
-            callback(self.peripheralsServicesTuple)
+            if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
+                callback(self.peripheralsServicesTuple)
+            }
             return .continue
         }, stopped: { [weak self] discoveries, error in
             guard let self = self else { return }
-            self.updatePeripheralsServicesTuple(discoveries: discoveries)
-            stopped()
+            if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
+                stopped()
+            }
             if let error = error {
                 print("Stopped scanning with error: \(error)")
             }
@@ -184,9 +181,9 @@ public enum BleTransportError: Error {
             }
         } failure: { [weak self] error in
             if let error = error {
-                self?.isExchanging = false
                 self?.exchangeCallback?(.failure(.readError(description: error.localizedDescription)))
             }
+            self?.isExchanging = false
         }
     }
     
@@ -262,14 +259,25 @@ public enum BleTransportError: Error {
     
     // MARK: - Private methods
     
-    fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) {
-        peripheralsServicesTuple.removeAll()
+    /// Updates the current list of peripherals matching them with their service.
+    ///
+    /// - Parameter discoveries: All the current devices.
+    /// - Returns: A boolean indicating whether the last changed since the last update.
+    fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
+        //peripheralsServicesTuple.removeAll()
+        var auxPeripherals = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
         for discovery in discoveries {
             let peripheral = discovery.peripheralIdentifier
             if let services = discovery.advertisementPacket["kCBAdvDataServiceUUIDs"] as? [CBUUID], let firstService = services.first {
-                peripheralsServicesTuple.append((peripheral: peripheral, serviceUUID: firstService))
+                auxPeripherals.append((peripheral: peripheral, serviceUUID: firstService))
             }
         }
+        
+        let somethingChanged = auxPeripherals.map({ $0.peripheral }) == peripheralsServicesTuple.map({ $0.peripheral })
+        
+        peripheralsServicesTuple = auxPeripherals
+        
+        return somethingChanged
     }
     
     fileprivate func inferMTU() {

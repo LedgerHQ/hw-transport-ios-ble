@@ -18,7 +18,11 @@ public protocol BleTransportProtocol {
     
     var isBluetoothAvailable: Bool { get }
     
-    init(configuration: BleTransportConfiguration)
+    /// Initialize a new `BleTransport` instance
+    ///
+    /// - Parameter configuration: Define the services and characteristics to use. Passing `nil` will use the default configuration.
+    /// - Parameter debugMode: Whether we let Bluejay print the debug statements to the console or not.
+    init(configuration: BleTransportConfiguration?, debugMode: Bool)
     
     /// Scan for reachable devices with the services provided.
     ///

@@ -32,7 +32,7 @@ class ScanViewController: UIViewController {
         
         devicesFoundLabel.alpha = 0.0
         
-        transport = BleTransport(configuration: configuration)
+        transport = BleTransport(configuration: configuration, debugMode: false)
     }
     
     fileprivate func connectToDevice(_ device: PeripheralIdentifier) {
