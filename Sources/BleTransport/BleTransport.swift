@@ -304,6 +304,7 @@ public enum BleTransportError: Error {
 extension BleTransport: ConnectionObserver {
     public func disconnected(from peripheral: PeripheralIdentifier) {
         connectedPeripheral = nil
+        isExchanging = false
         disconnectedCallback?()
     }
 }
