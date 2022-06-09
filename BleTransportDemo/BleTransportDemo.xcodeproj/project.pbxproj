@@ -18,6 +18,8 @@
 		93811E462836E14A00A81145 /* ScanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93811E452836E14A00A81145 /* ScanViewController.swift */; };
 		93811E492836E1EC00A81145 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = 93811E482836E1EC00A81145 /* Starscream */; };
 		93811E4E2836E42200A81145 /* DeviceFoundTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93811E4D2836E42200A81145 /* DeviceFoundTableViewCell.swift */; };
+		93B8534C284BC9C1004ED501 /* TransportJSExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B8534B284BC9C1004ED501 /* TransportJSExport.swift */; };
+		93C7911E2845748E00B74278 /* test.js in Resources */ = {isa = PBXBuildFile; fileRef = 93C7911B2845718A00B74278 /* test.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +35,8 @@
 		93811E402836E0C500A81145 /* ConnectedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedViewController.swift; sourceTree = "<group>"; };
 		93811E452836E14A00A81145 /* ScanViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScanViewController.swift; sourceTree = "<group>"; };
 		93811E4D2836E42200A81145 /* DeviceFoundTableViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceFoundTableViewCell.swift; sourceTree = "<group>"; };
+		93B8534B284BC9C1004ED501 /* TransportJSExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportJSExport.swift; sourceTree = "<group>"; };
+		93C7911B2845718A00B74278 /* test.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = test.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +82,7 @@
 				93811E2F2836DC0D00A81145 /* Assets.xcassets */,
 				93811E312836DC0D00A81145 /* LaunchScreen.storyboard */,
 				93811E342836DC0D00A81145 /* Info.plist */,
+				93C7911B2845718A00B74278 /* test.js */,
 			);
 			path = BleTransportDemo;
 			sourceTree = "<group>";
@@ -102,6 +107,7 @@
 			children = (
 				93811E452836E14A00A81145 /* ScanViewController.swift */,
 				93811E402836E0C500A81145 /* ConnectedViewController.swift */,
+				93B8534B284BC9C1004ED501 /* TransportJSExport.swift */,
 			);
 			path = ViewControllers;
 			sourceTree = "<group>";
@@ -187,6 +193,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				93C7911E2845748E00B74278 /* test.js in Resources */,
 				93811E332836DC0D00A81145 /* LaunchScreen.storyboard in Resources */,
 				93811E302836DC0D00A81145 /* Assets.xcassets in Resources */,
 				93811E2E2836DC0B00A81145 /* Main.storyboard in Resources */,
@@ -201,6 +208,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				93811E4E2836E42200A81145 /* DeviceFoundTableViewCell.swift in Sources */,
+				93B8534C284BC9C1004ED501 /* TransportJSExport.swift in Sources */,
 				93811E442836E0C600A81145 /* AppInstaller.swift in Sources */,
 				93811E432836E0C600A81145 /* ConnectedViewController.swift in Sources */,
 				93811E462836E14A00A81145 /* ScanViewController.swift in Sources */,

@@ -27,7 +27,7 @@ public class APDU: Sendable, Receivable {
     
     // Overload to allow passing a String instead of UInt8 since that's what we get from live-common anyway
     public init(raw: String) {
-        guard raw.isHexDigit else { print("STRING PASSED IS NOT HEX"); fatalError(); return }
+        guard raw.isHexDigit else { print("STRING PASSED IS NOT HEX"); fatalError() }
         let dataReceived = Data(raw.UInt8Array())
         self.data = dataReceived
         self.chunks = self.chunkAPDU(data: dataReceived)
