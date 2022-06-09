@@ -41,6 +41,11 @@ public enum BleTransportError: Error {
         bluejay.isBluetoothAvailable
     }
     
+    @objc
+    public var isConnected: Bool {
+        connectedPeripheral != nil
+    }
+    
     // MARK: - Initialization
     
     @objc
@@ -313,4 +318,10 @@ extension BleTransport: LogObserver {
     public func debug(_ text: String) {
         
     }
+}
+
+func print(_ object: Any) {
+    #if DEBUG
+    Swift.print(object)
+    #endif
 }
