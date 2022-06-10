@@ -62,6 +62,7 @@ public enum BleTransportError: Error {
         if !debugMode {
             self.bluejay.register(logObserver: self)
         }
+        self.bluejay.register(connectionObserver: self)
         self.bluejay.start()
     }
     
