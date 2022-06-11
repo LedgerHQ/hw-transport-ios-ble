@@ -8,6 +8,7 @@
 import UIKit
 import Bluejay
 import BleTransport
+import JavaScriptCore
 
 class ConnectedViewController: UIViewController {
 
@@ -22,6 +23,25 @@ class ConnectedViewController: UIViewController {
     
     var disconnectTapped: ((PeripheralIdentifier)->())?
     
+    lazy var jsContext: JSContext? = {
+        let jsContext = JSContext()
+        
+        guard let
+                commonJSPath = Bundle.main.path(forResource: "bundle", ofType: "js") else {
+            print("Unable to read resource files.")
+            return nil
+        }
+        
+        do {
+            let common = try String(contentsOfFile: commonJSPath, encoding: String.Encoding.utf8)
+            _ = jsContext?.evaluateScript(common)
+        } catch (let error) {
+            print("Error while processing script file: \(error)")
+        }
+        
+        return jsContext
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -34,7 +54,7 @@ class ConnectedViewController: UIViewController {
     }
     
     @IBAction func installAppButtonTapped(_ sender: Any) {
-        guard let transport = transport else { return }
+        /*guard let transport = transport else { return }
         
         UIView.animate(withDuration: 0.3) {
             self.progressLabel.alpha = 1.0
@@ -43,7 +63,35 @@ class ConnectedViewController: UIViewController {
         progressLabel.alpha = 1.0
         
         appInstaller = AppInstaller(transport: transport, installingProtocol: self)
-        appInstaller?.installBTC()
+        appInstaller?.installBTC()*/
+        
+        guard let jsContext = jsContext else {
+            print("JSContext not found.")
+            fatalError()
+        }
+        
+        jsContext.setObject(TransportJS.self, forKeyedSubscript: "Transport" as (NSCopying & NSObjectProtocol))
+        
+        jsContext.exceptionHandler = { _, error in
+            print("Caught exception:", error as Any)
+        }
+        
+        jsContext.setObject(
+            {()->@convention(block) (JSValue)->Void in { print($0) }}(),
+            forKeyedSubscript: "print" as NSString
+        )
+        
+        guard let module = jsContext.objectForKeyedSubscript("TransportModule") else { return }
+        let functionToCall = module.objectForKeyedSubscript("testSendData")
+        let startDate = Date()
+        functionToCall?.callAsync(withArguments: [], completionHandler: { resolve, reject in
+            print("Time passed: \(Date().timeIntervalSince(startDate))")
+            if let resolve = resolve {
+                print("RESOLVED. Value: \(resolve)")
+            } else if let reject = reject {
+                print("REJECTED. Value: \(reject)")
+            }
+        })
     }
     
     @IBAction func disconnectButtonTapped(_ sender: Any) {

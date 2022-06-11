@@ -19,6 +19,8 @@ public enum BleTransportError: Error {
 
 @objc public class BleTransport: NSObject, BleTransportProtocol {
     
+    public static var shared: BleTransportProtocol = BleTransport(configuration: nil, debugMode: false)
+    
     private let bluejay: Bluejay
     
     private let configuration: BleTransportConfiguration

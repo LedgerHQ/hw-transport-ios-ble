@@ -16,6 +16,8 @@ public typealias ErrorResponse = ((Error?)->())
 
 public protocol BleTransportProtocol {
     
+    static var shared: BleTransportProtocol { get }
+    
     var isBluetoothAvailable: Bool { get }
     
     /// Initialize a new `BleTransport` instance
@@ -57,7 +59,7 @@ public protocol BleTransportProtocol {
     ///   - failure: Callback called when the connection failed.
     func send(apdu: APDU, success: @escaping (()->()), failure: @escaping ErrorResponse)
     
-    /// Disconnect from the passed device.
+    /// Disconnect from the currently connected device.
     /// - Parameters:
     ///   - immediate: Whether the disconnection should be queued or executed immediately. Passing `false` will wait until the current tasks have been completed.
     ///   - completion: Callback called when the device disconnection has failed with an error or disconnected successfully (`error == nil`).
