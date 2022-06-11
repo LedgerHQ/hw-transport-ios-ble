@@ -23,6 +23,7 @@ public enum BleTransportError: Error {
     
     private let configuration: BleTransportConfiguration
     private var disconnectedCallback: (()->())?
+    private var failureCallback: ErrorResponse?
     
     private var peripheralsServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
     private var connectedPeripheral: PeripheralIdentifier?
@@ -62,7 +63,6 @@ public enum BleTransportError: Error {
         if !debugMode {
             self.bluejay.register(logObserver: self)
         }
-        self.bluejay.register(connectionObserver: self)
         self.bluejay.start()
     }
     
@@ -188,6 +188,10 @@ public enum BleTransportError: Error {
         } failure: { [weak self] error in
             if let error = error {
                 self?.exchangeCallback?(.failure(.readError(description: error.localizedDescription)))
+                if let failureCallback = self?.failureCallback {
+                    /// This is caused by a rejected or expired pairing attempt
+                    failureCallback(error)
+                }
             }
             self?.isExchanging = false
         }
@@ -232,6 +236,7 @@ public enum BleTransportError: Error {
     @objc
     public func disconnect(immediate: Bool, completion: @escaping ErrorResponse) {
         self.bluejay.disconnect(immediate: immediate) { [weak self] result in
+            self?.isExchanging = false
             switch result {
             case .disconnected(_):
                 self?.connectedPeripheral = nil
@@ -247,6 +252,8 @@ public enum BleTransportError: Error {
             self.bluejay.stopScanning()
         }
         self.disconnectedCallback = disconnectedCallback
+        self.failureCallback = failure
+
         self.bluejay.connect(peripheral, timeout: Timeout.seconds(15), warningOptions: nil) { [weak self] result in
             switch result {
             case .success(let peripheralIdentifier):
@@ -289,8 +296,12 @@ public enum BleTransportError: Error {
     fileprivate func inferMTU() {
         send(value: Data([0x08,0x00,0x00,0x00,0x00]), type: .withoutResponse, firstPass: true) {
             
-        } failure: { error in
+        } failure: { [self] error in
+            /// We failed to inferMTU even though we know we are connected (this was called from the .success case of connect)
+            /// This can mean two things, either we are in the older firmware which doesn't have .withoutResponse (I'll let you handle that)
+            /// or we triggered a pairing and it failed, therefor we need to call the failure callback from connect
             print("Error infering MTU: \(error?.localizedDescription ?? "no error")")
+            failureCallback!(error)
         }
 
     }
