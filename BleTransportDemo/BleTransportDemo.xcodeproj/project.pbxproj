@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		9377DFA72854C6C80046D7E8 /* test.js in Sources */ = {isa = PBXBuildFile; fileRef = 9377DFA62854C6C80046D7E8 /* test.js */; };
 		9377DFCC2854E1980046D7E8 /* bundle.js in Resources */ = {isa = PBXBuildFile; fileRef = 9377DFCB2854E1980046D7E8 /* bundle.js */; };
+		9377DFD0285540C80046D7E8 /* solanaBundle.js in Resources */ = {isa = PBXBuildFile; fileRef = 9377DFCF285540C80046D7E8 /* solanaBundle.js */; };
 		93811E272836DC0B00A81145 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93811E262836DC0B00A81145 /* AppDelegate.swift */; };
 		93811E292836DC0B00A81145 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93811E282836DC0B00A81145 /* SceneDelegate.swift */; };
 		93811E2E2836DC0B00A81145 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 93811E2C2836DC0B00A81145 /* Main.storyboard */; };
@@ -29,6 +30,7 @@
 /* Begin PBXFileReference section */
 		9377DFA62854C6C80046D7E8 /* test.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = test.js; sourceTree = "<group>"; };
 		9377DFCB2854E1980046D7E8 /* bundle.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = bundle.js; sourceTree = "<group>"; };
+		9377DFCF285540C80046D7E8 /* solanaBundle.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = solanaBundle.js; sourceTree = "<group>"; };
 		93811E232836DC0B00A81145 /* BleTransportDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BleTransportDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		93811E262836DC0B00A81145 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		93811E282836DC0B00A81145 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -83,6 +85,7 @@
 			children = (
 				9377DFA62854C6C80046D7E8 /* test.js */,
 				9377DFCB2854E1980046D7E8 /* bundle.js */,
+				9377DFCF285540C80046D7E8 /* solanaBundle.js */,
 			);
 			path = JavaScript;
 			sourceTree = "<group>";
@@ -231,6 +234,7 @@
 			files = (
 				93811E332836DC0D00A81145 /* LaunchScreen.storyboard in Resources */,
 				93811E302836DC0D00A81145 /* Assets.xcassets in Resources */,
+				9377DFD0285540C80046D7E8 /* solanaBundle.js in Resources */,
 				9377DFCC2854E1980046D7E8 /* bundle.js in Resources */,
 				93811E2E2836DC0B00A81145 /* Main.storyboard in Resources */,
 			);

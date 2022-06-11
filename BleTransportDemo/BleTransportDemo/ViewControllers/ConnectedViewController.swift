@@ -27,7 +27,7 @@ class ConnectedViewController: UIViewController {
         let jsContext = JSContext()
         
         guard let
-                commonJSPath = Bundle.main.path(forResource: "bundle", ofType: "js") else {
+                commonJSPath = Bundle.main.path(forResource: "solanaBundle", ofType: "js") else {
             print("Unable to read resource files.")
             return nil
         }
@@ -82,16 +82,16 @@ class ConnectedViewController: UIViewController {
         )
         
         guard let module = jsContext.objectForKeyedSubscript("TransportModule") else { return }
-        let functionToCall = module.objectForKeyedSubscript("testSendData")
-        let startDate = Date()
-        functionToCall?.callAsync(withArguments: [], completionHandler: { resolve, reject in
-            print("Time passed: \(Date().timeIntervalSince(startDate))")
+        guard let solanaModule = module.objectForKeyedSubscript("Solana") else { return }
+        guard let solanaInstance = solanaModule.construct(withArguments: []) else { return }
+        solanaInstance.invokeMethodAsync("getAppConfiguration", withArguments: [], completionHandler: { resolve, reject in
             if let resolve = resolve {
-                print("RESOLVED. Value: \(resolve)")
+                print("RESOLVED. Value: \(String(describing: resolve.toObject()))")
             } else if let reject = reject {
                 print("REJECTED. Value: \(reject)")
             }
         })
+        
     }
     
     @IBAction func disconnectButtonTapped(_ sender: Any) {

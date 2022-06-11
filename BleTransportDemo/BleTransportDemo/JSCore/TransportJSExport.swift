@@ -46,7 +46,7 @@ import JavaScriptCore
             self.transport.exchange(apdu: APDU(data: apdu)) { result in
                 switch result {
                 case .success(let response):
-                    callback.call(withArguments: [response])
+                    callback.call(withArguments: [response.UInt8Array()])
                 case .failure(let error):
                     callback.call(withArguments: ["ERROR: \(error.localizedDescription)"])
                 }
