@@ -70,7 +70,7 @@ class ConnectedViewController: UIViewController {
             fatalError()
         }
         
-        jsContext.setObject(TransportJS.self, forKeyedSubscript: "Transport" as (NSCopying & NSObjectProtocol))
+        jsContext.setObject(TransportJS.self, forKeyedSubscript: "SwiftTransport" as (NSCopying & NSObjectProtocol))
         
         jsContext.exceptionHandler = { _, error in
             print("Caught exception:", error as Any)
@@ -82,8 +82,10 @@ class ConnectedViewController: UIViewController {
         )
         
         guard let module = jsContext.objectForKeyedSubscript("TransportModule") else { return }
+        guard let transportModule = module.objectForKeyedSubscript("Transport") else { return }
+        guard let transportInstance = transportModule.construct(withArguments: []) else { return }
         guard let solanaModule = module.objectForKeyedSubscript("Solana") else { return }
-        guard let solanaInstance = solanaModule.construct(withArguments: []) else { return }
+        guard let solanaInstance = solanaModule.construct(withArguments: [transportInstance]) else { return }
         solanaInstance.invokeMethodAsync("getAppConfiguration", withArguments: [], completionHandler: { resolve, reject in
             if let resolve = resolve {
                 print("RESOLVED. Value: \(String(describing: resolve.toObject()))")
