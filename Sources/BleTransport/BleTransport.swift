@@ -25,7 +25,7 @@ public enum BleTransportError: Error {
     private var disconnectedCallback: (()->())?
     private var failureCallback: ErrorResponse?
     
-    private var peripheralsServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
+    public var peripheralsServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
     private var connectedPeripheral: PeripheralIdentifier?
     
     /// Exchange handling

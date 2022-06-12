@@ -17,6 +17,7 @@ public typealias ErrorResponse = ((Error?)->())
 public protocol BleTransportProtocol {
     
     var isBluetoothAvailable: Bool { get }
+    var peripheralsServicesTuple: [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)] { get set }
     
     /// Initialize a new `BleTransport` instance
     ///
