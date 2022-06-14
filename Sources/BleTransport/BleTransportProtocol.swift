@@ -23,7 +23,7 @@ public protocol BleTransportProtocol {
     /// Scan for reachable devices with the services provided.
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered devices changes.
-    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping (()->()))
+    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping ErrorResponse)
     
     /// Stop scanning for reachable devices.
     ///

@@ -64,8 +64,14 @@ class ScanViewController: UIViewController {
                 self?.devicesServicesTuple = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
                 self?.devicesTableView.reloadData()
-            } stopped: { [weak self] in
+            } stopped: { [weak self] error in
                 self?.scanningStateChanged(isScanning: false)
+                if let error = error {
+                    let alert = UIAlertController(title: "Error scanning", message: "\(error)", preferredStyle: .alert)
+                    let okAction = UIAlertAction(title: "Ok", style: .cancel)
+                    alert.addAction(okAction)
+                    self?.present(alert, animated: true, completion: nil)
+                }
             }
         }
     }

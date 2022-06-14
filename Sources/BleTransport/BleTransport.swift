@@ -16,6 +16,7 @@ public enum BleTransportError: Error {
     case writeError(description: String)
     case readError(description: String)
     case listenError(description: String)
+    case scanError(description: String)
     case lowerLevelError(description: String)
 }
 
@@ -71,7 +72,7 @@ public enum BleTransportError: Error {
     
     // MARK: - Public Methods
     
-    public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping (()->())) {
+    public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping ErrorResponse) {
         if self.bluejay.isScanning {
             self.bluejay.stopScanning()
         }
@@ -89,11 +90,12 @@ public enum BleTransportError: Error {
             return .continue
         }, stopped: { [weak self] discoveries, error in
             guard let self = self else { return }
-            if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
-                stopped()
-            }
+            self.updatePeripheralsServicesTuple(discoveries: discoveries)
             if let error = error {
                 print("Stopped scanning with error: \(error)")
+                stopped(.scanError(description: error.localizedDescription))
+            } else {
+                stopped(nil)
             }
         })
     }
@@ -109,8 +111,8 @@ public enum BleTransportError: Error {
             self?.connect(toPeripheralID: firstDiscovery.peripheral, disconnectedCallback: disconnectedCallback, success: { [weak self] _ in
                 self?.bluejay.stopScanning()
             }, failure: failure)
-        } stopped: {
-            failure(nil)
+        } stopped: { error in
+            failure(error)
         }
     }
     
@@ -251,18 +253,27 @@ public enum BleTransportError: Error {
             self.bluejay.stopScanning()
         }
         self.disconnectedCallback = disconnectedCallback
-        self.bluejay.connect(peripheral, timeout: Timeout.seconds(15), warningOptions: nil) { [weak self] result in
-            switch result {
-            case .success(let peripheralIdentifier):
-                self?.connectedPeripheral = peripheralIdentifier
-                self?.startListening()
-                self?.mtuWaitingForCallback = success
-                self?.inferMTU()
-                //self?.inferMTU(peripheral: peripheralIdentifier)
-                //success(peripheralIdentifier)
-            case .failure(let error):
-                failure(.connectError(description: error.localizedDescription))
+        
+        let connect = {
+            self.bluejay.connect(peripheral, timeout: Timeout.seconds(15), warningOptions: nil) { [weak self] result in
+                switch result {
+                case .success(let peripheralIdentifier):
+                    self?.connectedPeripheral = peripheralIdentifier
+                    self?.startListening()
+                    self?.mtuWaitingForCallback = success
+                    self?.inferMTU()
+                    //self?.inferMTU(peripheral: peripheralIdentifier)
+                    //success(peripheralIdentifier)
+                case .failure(let error):
+                    failure(.connectError(description: error.localizedDescription))
+                }
             }
+        }
+        
+        if !peripheralsServicesTuple.contains(where: { $0.peripheral == peripheral }) {
+            scanAndDiscoverBeforeConnecting(lookingFor: peripheral, connectFunction: connect, failure: failure)
+        } else {
+            connect()
         }
     }
     
@@ -273,6 +284,7 @@ public enum BleTransportError: Error {
     ///
     /// - Parameter discoveries: All the current devices.
     /// - Returns: A boolean indicating whether the last changed since the last update.
+    @discardableResult
     fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
         //peripheralsServicesTuple.removeAll()
         var auxPeripherals = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
@@ -288,6 +300,26 @@ public enum BleTransportError: Error {
         peripheralsServicesTuple = auxPeripherals
         
         return somethingChanged
+    }
+    
+    fileprivate func scanAndDiscoverBeforeConnecting(lookingFor: PeripheralIdentifier, connectFunction: @escaping ()->(), failure: @escaping ErrorResponse) {
+        let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+            self.stopScanning()
+            failure(.connectError(description: "Couldn't find peripheral when scanning, timed out"))
+        }
+        
+        scan { [weak self] discoveries in
+            if discoveries.contains(where: { $0.peripheral == lookingFor }) {
+                timer.invalidate()
+                connectFunction()
+                self?.stopScanning()
+            }
+        } stopped: { error in
+            if let error = error {
+                failure(.connectError(description: "Couldn't find peripheral when scanning because of error: \(error.localizedDescription)"))
+            }
+        }
+
     }
     
     fileprivate func inferMTU() {
