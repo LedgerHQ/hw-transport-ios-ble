@@ -12,12 +12,16 @@ import CoreBluetooth
 public enum BleTransportError: Error {
     case pendingActionOnDevice
     case userRefusedOnDevice
+    case connectError(description: String)
     case writeError(description: String)
     case readError(description: String)
-    case lowerLeverError(description: String)
+    case listenError(description: String)
+    case lowerLevelError(description: String)
 }
 
 @objc public class BleTransport: NSObject, BleTransportProtocol {
+    
+    public static var shared: BleTransportProtocol = BleTransport(configuration: nil, debugMode: false)
     
     private let bluejay: Bluejay
     
@@ -48,8 +52,7 @@ public enum BleTransportError: Error {
     
     // MARK: - Initialization
     
-    @objc
-    public required init(configuration: BleTransportConfiguration?, debugMode: Bool) {
+    private init(configuration: BleTransportConfiguration?, debugMode: Bool) {
         self.bluejay = Bluejay()
         self.configuration = configuration ?? BleTransportConfiguration.defaultConfig()
         
@@ -69,7 +72,9 @@ public enum BleTransportError: Error {
     // MARK: - Public Methods
     
     public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping (()->())) {
-        guard !self.bluejay.isScanning else { return }
+        if self.bluejay.isScanning {
+            self.bluejay.stopScanning()
+        }
         self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
             guard let self = self else { return .continue }
             if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
@@ -125,9 +130,9 @@ public enum BleTransportError: Error {
      * Write the next ble frame to the device,  only triggered from the exchange/send methods.
      **/
     fileprivate func writeAPDU(_ apdu: APDU, withResponse: Bool = false) {
-        guard !apdu.isEmpty else { return }
-        guard self.bluejay.isConnected, let connectedPeripheral = connectedPeripheral else { return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { return }
+        guard !apdu.isEmpty else { self.exchangeCallback?(.failure(.writeError(description: "APDU is empty"))); return }
+        guard self.bluejay.isConnected, let connectedPeripheral = connectedPeripheral else { self.exchangeCallback?(.failure(.writeError(description: "Not connected"))); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "No mathing peripheralService"))); return }
         self.bluejay.write(to: withResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse, value: apdu, type: withResponse ? .withResponse : .withoutResponse) { result in
             switch result {
             case .success:
@@ -194,14 +199,14 @@ public enum BleTransportError: Error {
     }
     
     fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping ErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { return }
+        guard let connectedPeripheral = connectedPeripheral else { failure(.listenError(description: "Not connected")); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No mathing peripheralService")); return }
         self.bluejay.listen(to: peripheralService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
             switch result {
             case .success(let apdu):
                 apduReceived(apdu)
             case .failure(let error):
-                failure(error)
+                failure(.listenError(description: error.localizedDescription))
             }
         }
     }
@@ -211,10 +216,10 @@ public enum BleTransportError: Error {
     }
     
     fileprivate func send<S: Sendable>(value: S, type: CBCharacteristicWriteType, firstPass: Bool, success: @escaping (()->()), failure: @escaping ErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { return }
+        guard let connectedPeripheral = connectedPeripheral else { failure(.writeError(description: "Not connected")); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No mathing peripheralService")); return }
         self.bluejay.write(to: type == .withResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse, value: value, type: type) { [weak self] result in
-            guard let self = self else { return }
+            guard let self = self else { failure(.writeError(description: "Self got deallocated")); return }
             switch result {
             case .success:
                 success()
@@ -223,13 +228,12 @@ public enum BleTransportError: Error {
                     self.send(value: value, type: type == .withResponse ? .withoutResponse : .withResponse, firstPass: false, success: success, failure: failure)
                 } else {
                     print(error.localizedDescription)
-                    failure(error)
+                    failure(.writeError(description: error.localizedDescription))
                 }
             }
         }
     }
     
-    @objc
     public func disconnect(immediate: Bool, completion: @escaping ErrorResponse) {
         self.bluejay.disconnect(immediate: immediate) { [weak self] result in
             switch result {
@@ -237,7 +241,7 @@ public enum BleTransportError: Error {
                 self?.connectedPeripheral = nil
                 completion(nil)
             case .failure(let error):
-                completion(error)
+                completion(.lowerLevelError(description: error.localizedDescription))
             }
         }
     }
@@ -257,7 +261,7 @@ public enum BleTransportError: Error {
                 //self?.inferMTU(peripheral: peripheralIdentifier)
                 //success(peripheralIdentifier)
             case .failure(let error):
-                failure(error)
+                failure(.connectError(description: error.localizedDescription))
             }
         }
     }

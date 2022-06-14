@@ -12,17 +12,13 @@ import CoreBluetooth
 public typealias PeripheralResponse = ((PeripheralIdentifier)->())
 public typealias PeripheralsWithServicesResponse = (([(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)])->())
 public typealias APDUResponse = ((APDU)->())
-public typealias ErrorResponse = ((Error?)->())
+public typealias ErrorResponse = ((BleTransportError?)->())
 
 public protocol BleTransportProtocol {
     
-    var isBluetoothAvailable: Bool { get }
+    static var shared: BleTransportProtocol { get }
     
-    /// Initialize a new `BleTransport` instance
-    ///
-    /// - Parameter configuration: Define the services and characteristics to use. Passing `nil` will use the default configuration.
-    /// - Parameter debugMode: Whether we let Bluejay print the debug statements to the console or not.
-    init(configuration: BleTransportConfiguration?, debugMode: Bool)
+    var isBluetoothAvailable: Bool { get }
     
     /// Scan for reachable devices with the services provided.
     ///
