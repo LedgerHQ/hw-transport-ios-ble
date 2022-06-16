@@ -19,6 +19,7 @@ public protocol BleTransportProtocol {
     static var shared: BleTransportProtocol { get }
     
     var isBluetoothAvailable: Bool { get }
+    var isConnected: Bool { get }
     
     /// Scan for reachable devices with the services provided.
     ///
