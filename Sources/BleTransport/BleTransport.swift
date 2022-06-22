@@ -12,20 +12,24 @@ import CoreBluetooth
 public enum BleTransportError: Error {
     case pendingActionOnDevice
     case userRefusedOnDevice
+    case connectError(description: String)
     case writeError(description: String)
     case readError(description: String)
-    case lowerLeverError(description: String)
+    case listenError(description: String)
+    case scanError(description: String)
+    case lowerLevelError(description: String)
 }
 
 @objc public class BleTransport: NSObject, BleTransportProtocol {
+    
+    public static var shared: BleTransportProtocol = BleTransport(configuration: nil, debugMode: false)
     
     private let bluejay: Bluejay
     
     private let configuration: BleTransportConfiguration
     private var disconnectedCallback: (()->())?
-    private var failureCallback: ErrorResponse?
     
-    public var peripheralsServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
+    private var peripheralsServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
     private var connectedPeripheral: PeripheralIdentifier?
     
     /// Exchange handling
@@ -49,8 +53,7 @@ public enum BleTransportError: Error {
     
     // MARK: - Initialization
     
-    @objc
-    public required init(configuration: BleTransportConfiguration?, debugMode: Bool) {
+    private init(configuration: BleTransportConfiguration?, debugMode: Bool) {
         self.bluejay = Bluejay()
         self.configuration = configuration ?? BleTransportConfiguration.defaultConfig()
         
@@ -63,13 +66,16 @@ public enum BleTransportError: Error {
         if !debugMode {
             self.bluejay.register(logObserver: self)
         }
+        self.bluejay.register(connectionObserver: self)
         self.bluejay.start()
     }
     
     // MARK: - Public Methods
     
-    public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping (()->())) {
-        guard !self.bluejay.isScanning else { return }
+    public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping ErrorResponse) {
+        if self.bluejay.isScanning {
+            self.bluejay.stopScanning()
+        }
         self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
             guard let self = self else { return .continue }
             if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
@@ -84,11 +90,12 @@ public enum BleTransportError: Error {
             return .continue
         }, stopped: { [weak self] discoveries, error in
             guard let self = self else { return }
-            if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
-                stopped()
-            }
+            self.updatePeripheralsServicesTuple(discoveries: discoveries)
             if let error = error {
                 print("Stopped scanning with error: \(error)")
+                stopped(.scanError(description: error.localizedDescription))
+            } else {
+                stopped(nil)
             }
         })
     }
@@ -104,8 +111,8 @@ public enum BleTransportError: Error {
             self?.connect(toPeripheralID: firstDiscovery.peripheral, disconnectedCallback: disconnectedCallback, success: { [weak self] _ in
                 self?.bluejay.stopScanning()
             }, failure: failure)
-        } stopped: {
-            failure(nil)
+        } stopped: { error in
+            failure(error)
         }
     }
     
@@ -125,9 +132,9 @@ public enum BleTransportError: Error {
      * Write the next ble frame to the device,  only triggered from the exchange/send methods.
      **/
     fileprivate func writeAPDU(_ apdu: APDU, withResponse: Bool = false) {
-        guard !apdu.isEmpty else { return }
-        guard self.bluejay.isConnected, let connectedPeripheral = connectedPeripheral else { return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { return }
+        guard !apdu.isEmpty else { self.exchangeCallback?(.failure(.writeError(description: "APDU is empty"))); return }
+        guard self.bluejay.isConnected, let connectedPeripheral = connectedPeripheral else { self.exchangeCallback?(.failure(.writeError(description: "Not connected"))); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "No mathing peripheralService"))); return }
         self.bluejay.write(to: withResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse, value: apdu, type: withResponse ? .withResponse : .withoutResponse) { result in
             switch result {
             case .success:
@@ -188,24 +195,20 @@ public enum BleTransportError: Error {
         } failure: { [weak self] error in
             if let error = error {
                 self?.exchangeCallback?(.failure(.readError(description: error.localizedDescription)))
-                if let failureCallback = self?.failureCallback {
-                    /// This is caused by a rejected or expired pairing attempt
-                    failureCallback(error)
-                }
             }
             self?.isExchanging = false
         }
     }
     
     fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping ErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { return }
+        guard let connectedPeripheral = connectedPeripheral else { failure(.listenError(description: "Not connected")); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No mathing peripheralService")); return }
         self.bluejay.listen(to: peripheralService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
             switch result {
             case .success(let apdu):
                 apduReceived(apdu)
             case .failure(let error):
-                failure(error)
+                failure(.listenError(description: error.localizedDescription))
             }
         }
     }
@@ -215,10 +218,10 @@ public enum BleTransportError: Error {
     }
     
     fileprivate func send<S: Sendable>(value: S, type: CBCharacteristicWriteType, firstPass: Bool, success: @escaping (()->()), failure: @escaping ErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { return }
+        guard let connectedPeripheral = connectedPeripheral else { failure(.writeError(description: "Not connected")); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No mathing peripheralService")); return }
         self.bluejay.write(to: type == .withResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse, value: value, type: type) { [weak self] result in
-            guard let self = self else { return }
+            guard let self = self else { failure(.writeError(description: "Self got deallocated")); return }
             switch result {
             case .success:
                 success()
@@ -227,22 +230,20 @@ public enum BleTransportError: Error {
                     self.send(value: value, type: type == .withResponse ? .withoutResponse : .withResponse, firstPass: false, success: success, failure: failure)
                 } else {
                     print(error.localizedDescription)
-                    failure(error)
+                    failure(.writeError(description: error.localizedDescription))
                 }
             }
         }
     }
     
-    @objc
     public func disconnect(immediate: Bool, completion: @escaping ErrorResponse) {
         self.bluejay.disconnect(immediate: immediate) { [weak self] result in
-            self?.isExchanging = false
             switch result {
             case .disconnected(_):
                 self?.connectedPeripheral = nil
                 completion(nil)
             case .failure(let error):
-                completion(error)
+                completion(.lowerLevelError(description: error.localizedDescription))
             }
         }
     }
@@ -252,20 +253,27 @@ public enum BleTransportError: Error {
             self.bluejay.stopScanning()
         }
         self.disconnectedCallback = disconnectedCallback
-        self.failureCallback = failure
-
-        self.bluejay.connect(peripheral, timeout: Timeout.seconds(15), warningOptions: nil) { [weak self] result in
-            switch result {
-            case .success(let peripheralIdentifier):
-                self?.connectedPeripheral = peripheralIdentifier
-                self?.startListening()
-                self?.mtuWaitingForCallback = success
-                self?.inferMTU()
-                //self?.inferMTU(peripheral: peripheralIdentifier)
-                //success(peripheralIdentifier)
-            case .failure(let error):
-                failure(error)
+        
+        let connect = {
+            self.bluejay.connect(peripheral, timeout: Timeout.seconds(15), warningOptions: nil) { [weak self] result in
+                switch result {
+                case .success(let peripheralIdentifier):
+                    self?.connectedPeripheral = peripheralIdentifier
+                    self?.startListening()
+                    self?.mtuWaitingForCallback = success
+                    self?.inferMTU()
+                    //self?.inferMTU(peripheral: peripheralIdentifier)
+                    //success(peripheralIdentifier)
+                case .failure(let error):
+                    failure(.connectError(description: error.localizedDescription))
+                }
             }
+        }
+        
+        if !peripheralsServicesTuple.contains(where: { $0.peripheral == peripheral }) {
+            scanAndDiscoverBeforeConnecting(lookingFor: peripheral, connectFunction: connect, failure: failure)
+        } else {
+            connect()
         }
     }
     
@@ -276,6 +284,7 @@ public enum BleTransportError: Error {
     ///
     /// - Parameter discoveries: All the current devices.
     /// - Returns: A boolean indicating whether the last changed since the last update.
+    @discardableResult
     fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
         //peripheralsServicesTuple.removeAll()
         var auxPeripherals = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
@@ -293,15 +302,31 @@ public enum BleTransportError: Error {
         return somethingChanged
     }
     
+    fileprivate func scanAndDiscoverBeforeConnecting(lookingFor: PeripheralIdentifier, connectFunction: @escaping ()->(), failure: @escaping ErrorResponse) {
+        let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+            self.stopScanning()
+            failure(.connectError(description: "Couldn't find peripheral when scanning, timed out"))
+        }
+        
+        scan { [weak self] discoveries in
+            if discoveries.contains(where: { $0.peripheral == lookingFor }) {
+                timer.invalidate()
+                connectFunction()
+                self?.stopScanning()
+            }
+        } stopped: { error in
+            if let error = error {
+                failure(.connectError(description: "Couldn't find peripheral when scanning because of error: \(error.localizedDescription)"))
+            }
+        }
+
+    }
+    
     fileprivate func inferMTU() {
         send(value: Data([0x08,0x00,0x00,0x00,0x00]), type: .withoutResponse, firstPass: true) {
             
-        } failure: { [self] error in
-            /// We failed to inferMTU even though we know we are connected (this was called from the .success case of connect)
-            /// This can mean two things, either we are in the older firmware which doesn't have .withoutResponse (I'll let you handle that)
-            /// or we triggered a pairing and it failed, therefor we need to call the failure callback from connect
+        } failure: { error in
             print("Error infering MTU: \(error?.localizedDescription ?? "no error")")
-            failureCallback!(error)
         }
 
     }
