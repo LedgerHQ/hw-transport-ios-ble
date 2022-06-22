@@ -39,7 +39,7 @@ public enum BleTransportError: Error {
     private var currentResponseRemainingLength = 0
     
     /// Infer MTU
-    private var mtuWaitingForCallback: PeripheralResponse?
+    private var mtuWaitingForCallback: (success: PeripheralResponse, failure: ErrorResponse)?
     
     @objc
     public var isBluetoothAvailable: Bool {
@@ -260,7 +260,7 @@ public enum BleTransportError: Error {
                 case .success(let peripheralIdentifier):
                     self?.connectedPeripheral = peripheralIdentifier
                     self?.startListening()
-                    self?.mtuWaitingForCallback = success
+                    self?.mtuWaitingForCallback = (success: success, failure: failure)
                     self?.inferMTU()
                     //self?.inferMTU(peripheral: peripheralIdentifier)
                     //success(peripheralIdentifier)
@@ -327,6 +327,7 @@ public enum BleTransportError: Error {
             
         } failure: { error in
             print("Error infering MTU: \(error?.localizedDescription ?? "no error")")
+            self.mtuWaitingForCallback?.failure(error)
         }
 
     }
@@ -338,7 +339,7 @@ public enum BleTransportError: Error {
             }
         }
         if let connectedPeripheral = connectedPeripheral {
-            mtuWaitingForCallback?(connectedPeripheral)
+            mtuWaitingForCallback?.success(connectedPeripheral)
         }
     }
 }
