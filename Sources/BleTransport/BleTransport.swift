@@ -20,7 +20,7 @@ public enum BleTransportError: Error {
     case lowerLevelError(description: String)
 }
 
-@objc public class BleTransport: NSObject, BleTransportProtocol, DisconnectHandler {
+@objc public class BleTransport: NSObject, BleTransportProtocol {
     
     public static var shared: BleTransportProtocol = BleTransport(configuration: nil, debugMode: false)
     
@@ -58,17 +58,8 @@ public enum BleTransportError: Error {
         self.configuration = configuration ?? BleTransportConfiguration.defaultConfig()
         
         super.init()
-        
-        bluejay.registerDisconnectHandler(handler: self)
 
         self.bleInit(debugMode: debugMode)
-    }
-
-    public func didDisconnect(
-      from peripheral: PeripheralIdentifier,
-      with error: Error?,
-      willReconnect autoReconnect: Bool) -> AutoReconnectMode {
-        return .change(shouldAutoReconnect: false) // Never auto reconnect thank you
     }
     
     fileprivate func bleInit(debugMode: Bool) {
@@ -76,6 +67,7 @@ public enum BleTransportError: Error {
             self.bluejay.register(logObserver: self)
         }
         self.bluejay.register(connectionObserver: self)
+        self.bluejay.registerDisconnectHandler(handler: self)
         self.bluejay.start()
     }
     
@@ -357,6 +349,12 @@ extension BleTransport: ConnectionObserver {
         connectedPeripheral = nil
         isExchanging = false
         disconnectedCallback?()
+    }
+}
+
+extension BleTransport: DisconnectHandler {
+    public func didDisconnect(from peripheral: PeripheralIdentifier, with error: Error?, willReconnect autoReconnect: Bool) -> AutoReconnectMode {
+        return .change(shouldAutoReconnect: false)
     }
 }
 
