@@ -17,6 +17,7 @@ public enum BleTransportError: Error {
     case readError(description: String)
     case listenError(description: String)
     case scanError(description: String)
+    case pairingError(description: String)
     case lowerLevelError(description: String)
 }
 
@@ -28,6 +29,7 @@ public enum BleTransportError: Error {
     
     private let configuration: BleTransportConfiguration
     private var disconnectedCallback: (()->())?
+    private var connectFailure: ((BleTransportError)->())?
     
     private var peripheralsServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
     private var connectedPeripheral: PeripheralIdentifier?
@@ -39,7 +41,7 @@ public enum BleTransportError: Error {
     private var currentResponseRemainingLength = 0
     
     /// Infer MTU
-    private var mtuWaitingForCallback: (success: PeripheralResponse, failure: ErrorResponse)?
+    private var mtuWaitingForCallback: PeripheralResponse?
     
     @objc
     public var isBluetoothAvailable: Bool {
@@ -194,7 +196,11 @@ public enum BleTransportError: Error {
             }
         } failure: { [weak self] error in
             if let error = error {
-                self?.exchangeCallback?(.failure(.readError(description: error.localizedDescription)))
+                if case .pairingError = error {
+                    self?.connectFailure?(error)
+                } else {
+                    self?.exchangeCallback?(.failure(.readError(description: error.localizedDescription)))
+                }
             }
             self?.isExchanging = false
         }
@@ -202,13 +208,17 @@ public enum BleTransportError: Error {
     
     fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping ErrorResponse) {
         guard let connectedPeripheral = connectedPeripheral else { failure(.listenError(description: "Not connected")); return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No mathing peripheralService")); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching peripheralService")); return }
         self.bluejay.listen(to: peripheralService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
             switch result {
             case .success(let apdu):
                 apduReceived(apdu)
             case .failure(let error):
-                failure(.listenError(description: error.localizedDescription))
+                if (error as NSError).code == 15 {
+                    failure(.pairingError(description: error.localizedDescription))
+                } else {
+                    failure(.listenError(description: error.localizedDescription))
+                }
             }
         }
     }
@@ -259,11 +269,10 @@ public enum BleTransportError: Error {
                 switch result {
                 case .success(let peripheralIdentifier):
                     self?.connectedPeripheral = peripheralIdentifier
+                    self?.connectFailure = failure
                     self?.startListening()
-                    self?.mtuWaitingForCallback = (success: success, failure: failure)
+                    self?.mtuWaitingForCallback = success
                     self?.inferMTU()
-                    //self?.inferMTU(peripheral: peripheralIdentifier)
-                    //success(peripheralIdentifier)
                 case .failure(let error):
                     failure(.connectError(description: error.localizedDescription))
                 }
@@ -327,7 +336,6 @@ public enum BleTransportError: Error {
             
         } failure: { error in
             print("Error infering MTU: \(error?.localizedDescription ?? "no error")")
-            self.mtuWaitingForCallback?.failure(error)
         }
 
     }
@@ -339,7 +347,7 @@ public enum BleTransportError: Error {
             }
         }
         if let connectedPeripheral = connectedPeripheral {
-            mtuWaitingForCallback?.success(connectedPeripheral)
+            mtuWaitingForCallback?(connectedPeripheral)
         }
     }
 }
