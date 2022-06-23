@@ -214,7 +214,7 @@ public enum BleTransportError: Error {
             case .success(let apdu):
                 apduReceived(apdu)
             case .failure(let error):
-                if (error as NSError).code == 15 {
+                if (error as NSError).code == CBATTError.insufficientEncryption.rawValue {
                     failure(.pairingError(description: error.localizedDescription))
                 } else {
                     failure(.listenError(description: error.localizedDescription))
