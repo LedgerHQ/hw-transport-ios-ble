@@ -31,6 +31,7 @@ public enum BleTransportError: Error {
     
     private var peripheralsServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
     private var connectedPeripheral: PeripheralIdentifier?
+    private var bluetoothAvailableCompletion: (()->())?
     
     /// Exchange handling
     private var exchangeCallback: ((Result<String, BleTransportError>) -> Void)?
@@ -256,7 +257,7 @@ public enum BleTransportError: Error {
         self.disconnectedCallback = disconnectedCallback
         
         let connect = {
-            self.bluejay.connect(peripheral, timeout: Timeout.seconds(15), warningOptions: nil) { [weak self] result in
+            self.bluejay.connect(peripheral, timeout: Timeout.seconds(5), warningOptions: nil) { [weak self] result in
                 switch result {
                 case .success(let peripheralIdentifier):
                     self?.connectedPeripheral = peripheralIdentifier
@@ -278,6 +279,13 @@ public enum BleTransportError: Error {
         }
     }
     
+    public func bluetoothAvailableCallback(completion: @escaping (()->())) {
+        if isBluetoothAvailable {
+            completion()
+        } else {
+            bluetoothAvailableCompletion = completion
+        }
+    }
     
     // MARK: - Private methods
     
@@ -349,6 +357,12 @@ extension BleTransport: ConnectionObserver {
         connectedPeripheral = nil
         isExchanging = false
         disconnectedCallback?()
+    }
+    
+    public func bluetoothAvailable(_ available: Bool) {
+        if available {
+            bluetoothAvailableCompletion?()
+        }
     }
 }
 

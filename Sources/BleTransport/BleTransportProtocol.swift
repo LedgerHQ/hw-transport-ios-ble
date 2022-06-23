@@ -59,4 +59,9 @@ public protocol BleTransportProtocol {
     ///   - immediate: Whether the disconnection should be queued or executed immediately. Passing `false` will wait until the current tasks have been completed.
     ///   - completion: Callback called when the device disconnection has failed with an error or disconnected successfully (`error == nil`).
     func disconnect(immediate: Bool, completion: @escaping ErrorResponse)
+    
+    
+    /// Get notified when bluetooth becomes available
+    /// - Parameter completion: Callback called when bluetooth becomes available (or immediately if was already available)
+    func bluetoothAvailableCallback(completion: @escaping (()->()))
 }
