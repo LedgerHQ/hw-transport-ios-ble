@@ -313,7 +313,7 @@ public enum BleTransportError: Error {
             }
         }
         
-        let somethingChanged = auxPeripherals.map({ $0.peripheral }) == peripheralsServicesTuple.map({ $0.peripheral })
+        let somethingChanged = auxPeripherals.map({ $0.peripheral }) != peripheralsServicesTuple.map({ $0.peripheral })
         
         peripheralsServicesTuple = auxPeripherals
         
