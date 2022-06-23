@@ -359,18 +359,24 @@ public enum BleTransportError: Error {
             mtuWaitingForCallback?(connectedPeripheral)
         }
     }
+    
+    fileprivate func clearConnection() {
+        connectedPeripheral = nil
+        isExchanging = false
+        disconnectedCallback?()
+    }
 }
 
 extension BleTransport: ConnectionObserver {
     public func disconnected(from peripheral: PeripheralIdentifier) {
-        connectedPeripheral = nil
-        isExchanging = false
-        disconnectedCallback?()
+        clearConnection()
     }
     
     public func bluetoothAvailable(_ available: Bool) {
         if available {
             bluetoothAvailableCompletion?()
+        } else {
+            clearConnection()
         }
     }
 }
