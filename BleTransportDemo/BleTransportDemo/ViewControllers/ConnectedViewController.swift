@@ -82,7 +82,7 @@ class ConnectedViewController: UIViewController {
         )
         
         guard let module = jsContext.objectForKeyedSubscript("TransportModule") else { return }
-        guard let transportModule = module.objectForKeyedSubscript("Transport") else { return }
+        guard let transportModule = module.objectForKeyedSubscript("TransportBLEiOS") else { return }
         guard let transportInstance = transportModule.construct(withArguments: []) else { return }
         guard let solanaModule = module.objectForKeyedSubscript("Solana") else { return }
         guard let solanaInstance = solanaModule.construct(withArguments: [transportInstance]) else { return }
