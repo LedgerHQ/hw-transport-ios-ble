@@ -66,6 +66,9 @@ class ScanViewController: UIViewController {
                 self?.devicesTableView.reloadData()
             } stopped: { [weak self] error in
                 self?.scanningStateChanged(isScanning: false)
+                self?.devicesFoundLabel.alpha = 0.0
+                self?.devicesServicesTuple = []
+                self?.devicesTableView.reloadData()
                 if let error = error {
                     let alert = UIAlertController(title: "Error scanning", message: "\(error)", preferredStyle: .alert)
                     let okAction = UIAlertAction(title: "Ok", style: .cancel)

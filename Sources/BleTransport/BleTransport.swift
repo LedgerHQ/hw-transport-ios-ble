@@ -80,6 +80,13 @@ public enum BleTransportError: Error {
         if self.bluejay.isScanning {
             self.bluejay.stopScanning()
         }
+        
+        if self.bluejay.isConnected {
+            self.bluejay.disconnect()
+        }
+        
+        self.peripheralsServicesTuple = [] /// We clean `peripheralsServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to devices
+        
         self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
             guard let self = self else { return .continue }
             if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
@@ -200,6 +207,7 @@ public enum BleTransportError: Error {
             if let error = error {
                 if case .pairingError = error {
                     self?.connectFailure?(error)
+                    self?.disconnect(immediate: false, completion: nil)
                 } else {
                     self?.exchangeCallback?(.failure(.readError(description: error.localizedDescription)))
                 }
@@ -248,14 +256,14 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func disconnect(immediate: Bool, completion: @escaping ErrorResponse) {
+    public func disconnect(immediate: Bool, completion: ErrorResponse?) {
         self.bluejay.disconnect(immediate: immediate) { [weak self] result in
             switch result {
             case .disconnected(_):
                 self?.connectedPeripheral = nil
-                completion(nil)
+                completion?(nil)
             case .failure(let error):
-                completion(.lowerLevelError(description: error.localizedDescription))
+                completion?(.lowerLevelError(description: error.localizedDescription))
             }
         }
     }
@@ -304,7 +312,6 @@ public enum BleTransportError: Error {
     /// - Returns: A boolean indicating whether the last changed since the last update.
     @discardableResult
     fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
-        //peripheralsServicesTuple.removeAll()
         var auxPeripherals = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
         for discovery in discoveries {
             let peripheral = discovery.peripheralIdentifier
