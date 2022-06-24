@@ -61,7 +61,7 @@ public protocol BleTransportProtocol {
     func disconnect(immediate: Bool, completion: ErrorResponse?)
     
     
-    /// Get notified when bluetooth becomes available
+    /// Get notified when bluetooth changes availability
     /// - Parameter completion: Callback called when bluetooth becomes available (or immediately if was already available)
-    func bluetoothAvailableCallback(completion: @escaping (()->()))
+    func bluetoothAvailabilityCallback(completion: @escaping ((_ availability: Bool)->()))
 }
