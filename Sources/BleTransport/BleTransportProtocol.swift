@@ -9,8 +9,9 @@ import Foundation
 import Bluejay
 import CoreBluetooth
 
+public typealias PeripheralInfoTuple = (peripheral: PeripheralIdentifier, rssi: Int, serviceUUID: CBUUID)
 public typealias PeripheralResponse = ((PeripheralIdentifier)->())
-public typealias PeripheralsWithServicesResponse = (([(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)])->())
+public typealias PeripheralsWithServicesResponse = (([PeripheralInfoTuple])->())
 public typealias APDUResponse = ((APDU)->())
 public typealias ErrorResponse = ((BleTransportError?)->())
 

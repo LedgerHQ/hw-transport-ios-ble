@@ -31,7 +31,7 @@ public enum BleTransportError: Error {
     private var disconnectedCallback: (()->())?
     private var connectFailure: ((BleTransportError)->())?
     
-    private var peripheralsServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
+    private var peripheralsServicesTuple = [PeripheralInfoTuple]()
     private var connectedPeripheral: PeripheralIdentifier?
     private var bluetoothAvailabilityCompletion: ((Bool)->())?
     
@@ -309,11 +309,11 @@ public enum BleTransportError: Error {
     /// - Returns: A boolean indicating whether the last changed since the last update.
     @discardableResult
     fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
-        var auxPeripherals = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
+        var auxPeripherals = [PeripheralInfoTuple]()
         for discovery in discoveries {
             let peripheral = discovery.peripheralIdentifier
             if let services = discovery.advertisementPacket["kCBAdvDataServiceUUIDs"] as? [CBUUID], let firstService = services.first {
-                auxPeripherals.append((peripheral: peripheral, serviceUUID: firstService))
+                auxPeripherals.append((peripheral: peripheral, rssi: discovery.rssi, serviceUUID: firstService))
             }
         }
         
