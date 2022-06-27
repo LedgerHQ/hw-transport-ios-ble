@@ -144,25 +144,16 @@ public enum BleTransportError: Error {
      **/
     fileprivate func writeAPDU(_ apdu: APDU, withResponse: Bool = false) {
         guard !apdu.isEmpty else { self.exchangeCallback?(.failure(.writeError(description: "APDU is empty"))); return }
-        guard self.bluejay.isConnected, let connectedPeripheral = connectedPeripheral else { self.exchangeCallback?(.failure(.writeError(description: "Not connected"))); return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "No mathing peripheralService"))); return }
-        self.bluejay.write(to: withResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse, value: apdu, type: withResponse ? .withResponse : .withoutResponse) { result in
-            switch result {
-            case .success:
-                apdu.next() /// Advance to next chunck in the `APDU`
-                if !apdu.isEmpty {
-                    self.writeAPDU(apdu, withResponse: withResponse)
-                }
-            case .failure(let error):
-                if let error = error as? BluejayError, case .missingCharacteristicProperty = error, !withResponse {
-                    /// We try a `writeWithResponse` in case the firmware is not updated (`writeWithoutResponse` characteristic was introduced in `2.0.2`)
-                    self.writeAPDU(apdu, withResponse: true)
-                } else {
-                    self.isExchanging = false
-                    self.exchangeCallback?(.failure(.writeError(description: error.localizedDescription)))
-                }
+        send(apdu: apdu) {
+            apdu.next()
+            if !apdu.isEmpty {
+                self.writeAPDU(apdu)
             }
+        } failure: { error in
+            self.isExchanging = false
+            self.exchangeCallback?(.failure(.writeError(description: error?.localizedDescription ?? "NO ERROR")))
         }
+
     }
     
     fileprivate func startListening() {
@@ -234,20 +225,41 @@ public enum BleTransportError: Error {
     }
     
     public func send(apdu: APDU, success: @escaping (()->()), failure: @escaping ErrorResponse) {
-        self.send(value: apdu, type: .withoutResponse, firstPass: true, success: success, failure: failure)
+        self.send(value: apdu, success: success, failure: failure)
     }
     
-    fileprivate func send<S: Sendable>(value: S, type: CBCharacteristicWriteType, firstPass: Bool, success: @escaping (()->()), failure: @escaping ErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { failure(.writeError(description: "Not connected")); return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No mathing peripheralService")); return }
-        self.bluejay.write(to: type == .withResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse, value: value, type: type) { [weak self] result in
+    /// The inner implementation of `send`
+    /// - Parameters:
+    ///   - value: APDU to send
+    ///   - retryWithResponse: Used internally in the function if `writeWithoutResponse` fails the first time
+    ///   - success: The success callback
+    ///   - failure: The failue callback
+    fileprivate func send<S: Sendable>(value: S, retryWithResponse: Bool = false, success: @escaping (()->()), failure: @escaping ErrorResponse) {
+        guard self.bluejay.isConnected, let connectedPeripheral = connectedPeripheral else { failure(.writeError(description: "Not connected")); return }
+        guard let connectedPeripheralTuple = peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "peripheralsServiceTuple doesn't contain conencted peripheral UUID"))); return }
+        guard let peripheralService = configuration.services.first(where: { configService in connectedPeripheralTuple.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No matching peripheralService")); return }
+        let writeCharacteristic: CharacteristicIdentifier
+        let type: CBCharacteristicWriteType
+        if let canWriteWithoutCharacteristic = connectedPeripheralTuple.canWriteWithoutResponse {
+            writeCharacteristic = peripheralService.writeCharacteristic(canWriteWithoutResponse: canWriteWithoutCharacteristic)
+            type = canWriteWithoutCharacteristic ? .withoutResponse : .withResponse
+        } else {
+            writeCharacteristic = retryWithResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse
+            type = retryWithResponse ? .withResponse : .withoutResponse
+        }
+        self.bluejay.write(to: writeCharacteristic, value: value, type: type) { [weak self] result in
             guard let self = self else { failure(.writeError(description: "Self got deallocated")); return }
             switch result {
             case .success:
+                if connectedPeripheralTuple.canWriteWithoutResponse == nil {
+                    if let tupleIndex = self.peripheralsServicesTuple.firstIndex(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) {
+                        self.peripheralsServicesTuple[tupleIndex].canWriteWithoutResponse = type == .withoutResponse
+                    }
+                }
                 success()
             case .failure(let error):
-                if firstPass {
-                    self.send(value: value, type: type == .withResponse ? .withoutResponse : .withResponse, firstPass: false, success: success, failure: failure)
+                if connectedPeripheralTuple.canWriteWithoutResponse == nil {
+                    self.send(value: value, retryWithResponse: true, success: success, failure: failure)
                 } else {
                     print(error.localizedDescription)
                     failure(.writeError(description: error.localizedDescription))
@@ -313,7 +325,7 @@ public enum BleTransportError: Error {
         for discovery in discoveries {
             let peripheral = discovery.peripheralIdentifier
             if let services = discovery.advertisementPacket["kCBAdvDataServiceUUIDs"] as? [CBUUID], let firstService = services.first {
-                auxPeripherals.append((peripheral: peripheral, rssi: discovery.rssi, serviceUUID: firstService))
+                auxPeripherals.append((peripheral: peripheral, rssi: discovery.rssi, serviceUUID: firstService, canWriteWithoutResponse: nil))
             }
         }
         
@@ -345,11 +357,12 @@ public enum BleTransportError: Error {
     }
     
     fileprivate func inferMTU() {
-        send(value: Data([0x08,0x00,0x00,0x00,0x00]), type: .withoutResponse, firstPass: true) {
+        send(value: Data([0x08,0x00,0x00,0x00,0x00])) {
             
         } failure: { error in
             print("Error infering MTU: \(error?.localizedDescription ?? "no error")")
         }
+
 
     }
     

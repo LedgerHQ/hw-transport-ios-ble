@@ -61,7 +61,6 @@ class ScanViewController: UIViewController {
         if let transport = transport, transport.isBluetoothAvailable {
             self.scanningStateChanged(isScanning: true)
             transport.scan { [weak self] discoveries in
-                print(discoveries.map({ $0.rssi }))
                 self?.devicesServicesTuple = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
                 self?.devicesTableView.reloadData()
