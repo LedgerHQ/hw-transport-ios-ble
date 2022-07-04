@@ -20,7 +20,7 @@ public enum BleTransportError: Error {
     case pairingError(description: String)
     case lowerLevelError(description: String)
     
-    func description() -> String {
+    public func description() -> String {
         switch self {
         case .pendingActionOnDevice:
             return "Pending action on device"
