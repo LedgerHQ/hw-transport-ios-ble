@@ -88,7 +88,17 @@ class ConnectedViewController: UIViewController {
         guard let solanaInstance = solanaModule.construct(withArguments: [transportInstance]) else { return }
         solanaInstance.invokeMethodAsync("getAppConfiguration", withArguments: [], completionHandler: { resolve, reject in
             if let resolve = resolve {
-                print("RESOLVED. Value: \(String(describing: resolve.toObject()))")
+                if let dict = resolve.toDictionary() {
+                    guard let blindSigningEnabled = dict["blindSigningEnabled"] as? Bool else { print("Unexpected type returned"); return }
+                    guard let pubKeyDisplayModeInt = dict["pubKeyDisplayMode"] as? Int else { print("Unexpected type returned"); return }
+                    guard let version = dict["version"] as? String else { print("Unexpected type returned"); return }
+                    guard let pubKeyDisplayMode = PubKeyDisplayMode(rawValue: pubKeyDisplayModeInt) else { print("Unexpected type returned"); return }
+                    let appConfig = AppConfig(blindSigningEnabled: blindSigningEnabled, pubKeyDisplayMode: pubKeyDisplayMode, version: version)
+                    
+                    print("Installed version is: \(appConfig.version)")
+                    print("Blind signing enabled: \(appConfig.blindSigningEnabled)")
+                    print("pubKeyDisplayMode: \(appConfig.pubKeyDisplayMode)")
+                }
             } else if let reject = reject {
                 print("REJECTED. Value: \(reject)")
             }
@@ -101,6 +111,17 @@ class ConnectedViewController: UIViewController {
         disconnectTapped?(connectedDevice)
     }
 
+}
+
+enum PubKeyDisplayMode: Int {
+    case long = 0
+    case short = 1
+}
+
+struct AppConfig {
+    let blindSigningEnabled: Bool
+    let pubKeyDisplayMode: PubKeyDisplayMode
+    let version: String
 }
 
 extension ConnectedViewController: InstallingProtocol {
