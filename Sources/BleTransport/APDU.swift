@@ -80,7 +80,7 @@ class APDUs: NSObject {
     public static let openBitcoin: [APDU] = [APDU(raw: "e0d8000007426974636f696e")]
 }
 
-extension String {
+public extension String {
     func UInt8Array() -> [UInt8] {
         var lo = 0
         let chars = Array(self)
