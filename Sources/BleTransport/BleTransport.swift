@@ -142,11 +142,16 @@ public enum BleTransportError: Error {
     public func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
         scan { [weak self] discoveries in
             guard let firstDiscovery = discoveries.first else { failure(nil); return }
-            self?.connect(toPeripheralID: firstDiscovery.peripheral, disconnectedCallback: disconnectedCallback, success: { [weak self] _ in
-                self?.bluejay.stopScanning()
+            self?.connect(toPeripheralID: firstDiscovery.peripheral, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedPeripheral in
+                if self?.bluejay.isScanning == true {
+                    self?.bluejay.stopScanning()
+                }
+                success(connectedPeripheral)
             }, failure: failure)
         } stopped: { error in
-            failure(error)
+            if let error = error {
+                failure(error)
+            }
         }
     }
 
