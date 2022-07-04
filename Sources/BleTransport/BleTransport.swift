@@ -19,6 +19,29 @@ public enum BleTransportError: Error {
     case scanError(description: String)
     case pairingError(description: String)
     case lowerLevelError(description: String)
+    
+    func description() -> String {
+        switch self {
+        case .pendingActionOnDevice:
+            return "Pending action on device"
+        case .userRefusedOnDevice:
+            return "User refused on device"
+        case .connectError(let description):
+            return "Connect error: \(description)"
+        case .writeError(let description):
+            return "Write error: \(description)"
+        case .readError(let description):
+            return "Read error: \(description)"
+        case .listenError(let description):
+            return "Listen error: \(description)"
+        case .scanError(let description):
+            return "Scan error: \(description)"
+        case .pairingError(let description):
+            return "Pairing error: \(description)"
+        case .lowerLevelError(let description):
+            return "Lower level error: \(description)"
+        }
+    }
 }
 
 @objc public class BleTransport: NSObject, BleTransportProtocol {
