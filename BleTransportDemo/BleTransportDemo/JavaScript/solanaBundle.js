@@ -718,8 +718,6 @@ var TransportBLEiOS = /** @class */ (function (_super) {
     TransportBLEiOS.prototype.promisify = function (callback) {
         return new Promise(function (resolve, reject) {
             callback(function (response, error) {
-                print("response: " + response)
-                print("error: " + error)
                 if (error == "") {
                     resolve(response);
                 }
