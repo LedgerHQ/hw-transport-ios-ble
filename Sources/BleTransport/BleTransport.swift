@@ -16,7 +16,7 @@ public enum BleTransportError: Error {
     case readError(description: String)
     case lowerLeverError(description: String)
     
-    func description() -> String {
+    public func description() -> String {
         switch self {
         case .pendingActionOnDevice:
             return "Pending action on device"
