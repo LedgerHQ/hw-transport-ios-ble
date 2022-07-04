@@ -18,7 +18,7 @@ class ScanViewController: UIViewController {
     @IBOutlet weak var infoLabel: UILabel!
     @IBOutlet weak var devicesFoundLabel: UILabel!
     
-    var devicesServicesTuple = [(peripheral: PeripheralIdentifier, serviceUUID: CBUUID)]()
+    var devicesServicesTuple = [PeripheralInfoTuple]()
     var deviceConnecting: PeripheralIdentifier?
     var connectedDevice: PeripheralIdentifier?
     
@@ -65,8 +65,17 @@ class ScanViewController: UIViewController {
                 self?.devicesServicesTuple = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
                 self?.devicesTableView.reloadData()
-            } stopped: { [weak self] in
+            } stopped: { [weak self] error in
                 self?.scanningStateChanged(isScanning: false)
+                self?.devicesFoundLabel.alpha = 0.0
+                self?.devicesServicesTuple = []
+                self?.devicesTableView.reloadData()
+                if let error = error {
+                    let alert = UIAlertController(title: "Error scanning", message: "\(error)", preferredStyle: .alert)
+                    let okAction = UIAlertAction(title: "Ok", style: .cancel)
+                    alert.addAction(okAction)
+                    self?.present(alert, animated: true, completion: nil)
+                }
             }
         }
     }
