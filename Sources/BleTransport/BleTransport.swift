@@ -174,7 +174,7 @@ public enum BleTransportError: Error {
             }
         } failure: { error in
             self.isExchanging = false
-            self.exchangeCallback?(.failure(.writeError(description: error?.localizedDescription ?? "NO ERROR")))
+            self.exchangeCallback?(.failure(.writeError(description: error?.description() ?? "NO ERROR")))
         }
 
     }
@@ -223,7 +223,7 @@ public enum BleTransportError: Error {
                     self?.connectFailure?(error)
                     self?.disconnect(immediate: false, completion: nil)
                 } else {
-                    self?.exchangeCallback?(.failure(.readError(description: error.localizedDescription)))
+                    self?.exchangeCallback?(.failure(error))
                 }
             }
             self?.isExchanging = false
@@ -373,7 +373,7 @@ public enum BleTransportError: Error {
             }
         } stopped: { error in
             if let error = error {
-                failure(.connectError(description: "Couldn't find peripheral when scanning because of error: \(error.localizedDescription)"))
+                failure(.connectError(description: "Couldn't find peripheral when scanning because of error: \(error.description())"))
             }
         }
 
@@ -383,7 +383,7 @@ public enum BleTransportError: Error {
         send(value: Data([0x08,0x00,0x00,0x00,0x00])) {
 
         } failure: { error in
-            print("Error infering MTU: \(error?.localizedDescription ?? "no error")")
+            print("Error infering MTU: \(error?.description() ?? "no error")")
         }
 
 
