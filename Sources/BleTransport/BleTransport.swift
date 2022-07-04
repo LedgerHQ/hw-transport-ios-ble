@@ -15,6 +15,21 @@ public enum BleTransportError: Error {
     case writeError(description: String)
     case readError(description: String)
     case lowerLeverError(description: String)
+    
+    func description() -> String {
+        switch self {
+        case .pendingActionOnDevice:
+            return "Pending action on device"
+        case .userRefusedOnDevice:
+            return "User refused on device"
+        case .writeError(let description):
+            return "Write error: \(description)"
+        case .readError(let description):
+            return "Read error: \(description)"
+        case .lowerLeverError(let description):
+            return "Lower level error: \(description)"
+        }
+    }
 }
 
 @objc public class BleTransport: NSObject, BleTransportProtocol {
