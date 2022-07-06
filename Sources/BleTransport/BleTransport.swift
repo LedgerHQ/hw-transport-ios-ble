@@ -199,7 +199,7 @@ public enum BleTransportError: Error {
             if self.currentResponse == "" {
                 offset = 10
                 
-                let a = hex.index(hex.startIndex, offsetBy: 8)
+                let a = hex.index(hex.startIndex, offsetBy: 6)
                 let b = hex.index(hex.startIndex, offsetBy: 10)
                 let expectedLength = (Int(hex[a..<b], radix: 16) ?? 1) * 2
                 self.currentResponseRemainingLength = expectedLength
@@ -439,6 +439,6 @@ extension BleTransport: LogObserver {
 
 func print(_ object: Any) {
     #if DEBUG
-    Swift.print(object)
+    Swift.print("BleTransport", object)
     #endif
 }
