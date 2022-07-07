@@ -98,7 +98,7 @@ public extension String {
     }
 }
 
-extension Array where Element == UInt8 {
+public extension Array where Element == UInt8 {
     func bytesToHex(spacing: String) -> String {
         var hexString: String = ""
         var count = self.count
@@ -115,8 +115,8 @@ extension Array where Element == UInt8 {
     }
 }
 
-extension Data {
-    public func hexEncodedString(uppercase: Bool = false) -> String {
+public extension Data {
+    func hexEncodedString(uppercase: Bool = false) -> String {
         let format = uppercase ? "%02hhX" : "%02hhx"
         return self.map { String(format: format, $0) }.joined()
     }
