@@ -7,6 +7,7 @@ let package = Package(
     name: "BleTransport",
     platforms: [
         .iOS(.v13),
+        .macOS(.v12)
     ],
     products: [
         .library(
@@ -14,7 +15,7 @@ let package = Package(
             targets: ["BleTransport"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/DantePuglisi/bluejay", branch: "fail-when-wrong-characteristic-property"),
+        .package(url: "https://github.com/harrisonf-ledger/bluejay", branch: "multiplatform"),
     ],
     targets: [
         .target(

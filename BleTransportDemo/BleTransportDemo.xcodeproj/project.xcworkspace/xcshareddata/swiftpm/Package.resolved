@@ -3,10 +3,10 @@
     {
       "identity" : "bluejay",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DantePuglisi/bluejay",
+      "location" : "https://github.com/harrisonf-ledger/bluejay",
       "state" : {
-        "branch" : "fail-when-wrong-characteristic-property",
-        "revision" : "ceba79e911449d7ab29aa234d749962befbc9d16"
+        "branch" : "multiplatform",
+        "revision" : "17cfe41aaaa9181e26eaf5eacf193c8f96b9e3d8"
       }
     },
     {
