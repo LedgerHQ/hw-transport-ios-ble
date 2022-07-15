@@ -51,18 +51,22 @@ public class APDU: Sendable, Receivable {
     private func chunkAPDU(data: Data) -> [Data] {
         let apdu: [UInt8] = Array(data)
         var chunks = Array<Data>()
-        let size = UInt8(apdu.count)
+        let size = UInt16(apdu.count)
         
         let head: [UInt8] = [0x05]     // Tag/Head we need to send for the nano x
         var hi = 0                     // Our current index inside the data
-        var ind = UInt8(0)             // Frame counter
+        var ind = UInt16(0)            // Frame counter
         
         while(hi < size) {
-            let maxDataForFrame = ind == 0 ? (APDU.mtuSize - 5) : (APDU.mtuSize - 3)
+            let maxDataForFrame = ind == 0 ? (153 - 5) : (153 - 3)
             var messageData = Data()
             messageData.append(Data(head))
-            messageData.append(ind == 0 ? Data([0x00,0x00,0x00]) : Data([0x00]))
-            messageData.append(ind == 0 ? size.bigEndian : ind.bigEndian)
+            /// Index is 2 bytes
+            messageData.append(withUnsafeBytes(of: ind.bigEndian, { Data($0) }))
+            if ind == 0 {
+                /// Size is 2 bytes and we only send it in the first frame
+                messageData.append(withUnsafeBytes(of: size.bigEndian, { Data($0) }))
+            }
             messageData.append(Data(apdu[hi..<min(hi+maxDataForFrame, apdu.count)]))
             
             // Move forward in the data
