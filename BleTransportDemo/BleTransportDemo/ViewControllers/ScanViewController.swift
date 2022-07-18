@@ -39,7 +39,7 @@ class ScanViewController: UIViewController {
         guard deviceConnecting == nil else { return }
         deviceConnecting = device
         
-        transport?.connect(toPeripheralID: device) {
+        transport?.connect(toPeripheralID: device, timeout: .seconds(5)) {
             print("Device disconnected!")
         } success: { [weak self] peripheralConnected in
             self?.connectedDevice = peripheralConnected

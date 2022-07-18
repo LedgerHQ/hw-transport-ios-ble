@@ -143,11 +143,11 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping OptionalErrorResponse) {
+    public func create(timeout: Timeout, disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping OptionalErrorResponse) {
         DispatchQueue.main.async {
             self.scan { [weak self] discoveries in
                 guard let firstDiscovery = discoveries.first else { failure(nil); return }
-                self?.connect(toPeripheralID: firstDiscovery.peripheral, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedPeripheral in
+                self?.connect(toPeripheralID: firstDiscovery.peripheral, timeout: timeout, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedPeripheral in
                     if self?.bluejay.isScanning == true {
                         self?.bluejay.stopScanning()
                     }
@@ -233,7 +233,7 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
+    public func connect(toPeripheralID peripheral: PeripheralIdentifier, timeout: Timeout, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
         if self.bluejay.isScanning {
             self.bluejay.stopScanning()
         }

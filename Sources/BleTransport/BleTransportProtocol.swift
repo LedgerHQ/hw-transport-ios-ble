@@ -35,13 +35,13 @@ public protocol BleTransportProtocol {
     /// Attempt to connect to a given peripheral.
     ///
     /// - Parameter peripheral: The peripheral to connect to.
-    func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
+    func connect(toPeripheralID peripheral: PeripheralIdentifier, timeout: Timeout, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
     
     /// Convenience method to `scan` for devices and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping OptionalErrorResponse)
+    func create(timeout: Timeout, disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping OptionalErrorResponse)
     
     /// Send an `APDU` and wait for the response from the device.
     /// - Parameters:
