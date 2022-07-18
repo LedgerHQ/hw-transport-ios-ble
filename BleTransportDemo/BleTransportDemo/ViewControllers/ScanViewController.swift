@@ -46,12 +46,11 @@ class ScanViewController: UIViewController {
             self?.performSegue(withIdentifier: "connectedDeviceSegue", sender: nil)
             self?.deviceConnecting = nil
         } failure: { [weak self] error in
-            if let error = error {
-                let alert = UIAlertController(title: "Error connecting", message: "\(error)", preferredStyle: .alert)
-                let okAction = UIAlertAction(title: "Ok", style: .cancel)
-                alert.addAction(okAction)
-                self?.present(alert, animated: true, completion: nil)
-            }
+            let alert = UIAlertController(title: "Error connecting", message: "\(error)", preferredStyle: .alert)
+            let okAction = UIAlertAction(title: "Ok", style: .cancel)
+            alert.addAction(okAction)
+            self?.present(alert, animated: true, completion: nil)
+            
             self?.deviceConnecting = nil
         }
 

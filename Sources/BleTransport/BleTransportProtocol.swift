@@ -13,7 +13,8 @@ public typealias PeripheralInfoTuple = (peripheral: PeripheralIdentifier, rssi: 
 public typealias PeripheralResponse = ((PeripheralIdentifier)->())
 public typealias PeripheralsWithServicesResponse = (([PeripheralInfoTuple])->())
 public typealias APDUResponse = ((APDU)->())
-public typealias ErrorResponse = ((BleTransportError?)->())
+public typealias ErrorResponse = ((BleTransportError)->())
+public typealias OptionalErrorResponse = ((BleTransportError?)->())
 
 public protocol BleTransportProtocol {
     
@@ -25,7 +26,7 @@ public protocol BleTransportProtocol {
     /// Scan for reachable devices with the services provided.
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered devices changes.
-    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping ErrorResponse)
+    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalErrorResponse)
     
     /// Stop scanning for reachable devices.
     ///
@@ -40,7 +41,7 @@ public protocol BleTransportProtocol {
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
+    func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping OptionalErrorResponse)
     
     /// Send an `APDU` and wait for the response from the device.
     /// - Parameters:
@@ -59,7 +60,7 @@ public protocol BleTransportProtocol {
     /// - Parameters:
     ///   - immediate: Whether the disconnection should be queued or executed immediately. Passing `false` will wait until the current tasks have been completed.
     ///   - completion: Callback called when the device disconnection has failed with an error or disconnected successfully (`error == nil`).
-    func disconnect(immediate: Bool, completion: ErrorResponse?)
+    func disconnect(immediate: Bool, completion: OptionalErrorResponse?)
     
     
     /// Get notified when bluetooth changes availability

@@ -99,7 +99,7 @@ public enum BleTransportError: Error {
     
     // MARK: - Public Methods
     
-    public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping ErrorResponse) {
+    public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalErrorResponse) {
         DispatchQueue.main.async {
             if self.bluejay.isScanning {
                 self.bluejay.stopScanning()
@@ -143,7 +143,7 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
+    public func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping OptionalErrorResponse) {
         DispatchQueue.main.async {
             self.scan { [weak self] discoveries in
                 guard let firstDiscovery = discoveries.first else { failure(nil); return }
@@ -221,7 +221,7 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func disconnect(immediate: Bool, completion: ErrorResponse?) {
+    public func disconnect(immediate: Bool, completion: OptionalErrorResponse?) {
         self.bluejay.disconnect(immediate: immediate) { [weak self] result in
             switch result {
             case .disconnected(_):
@@ -321,7 +321,7 @@ public enum BleTransportError: Error {
             }
         } failure: { error in
             self.isExchanging = false
-            self.exchangeCallback?(.failure(.writeError(description: error?.description() ?? "NO ERROR")))
+            self.exchangeCallback?(.failure(.writeError(description: error.description())))
         }
         
     }
@@ -374,13 +374,11 @@ public enum BleTransportError: Error {
                 print("WAITING_FOR_NEXT_MESSAGE!!")
             }
         } failure: { [weak self] error in
-            if let error = error {
-                if case .pairingError = error {
-                    self?.connectFailure?(error)
-                    self?.disconnect(immediate: false, completion: nil)
-                } else {
-                    self?.exchangeCallback?(.failure(error))
-                }
+            if case .pairingError = error {
+                self?.connectFailure?(error)
+                self?.disconnect(immediate: false, completion: nil)
+            } else {
+                self?.exchangeCallback?(.failure(error))
             }
             self?.isExchanging = false
         }
@@ -407,7 +405,7 @@ public enum BleTransportError: Error {
         send(value: Data([0x08,0x00,0x00,0x00,0x00])) {
             
         } failure: { error in
-            print("Error infering MTU: \(error?.description() ?? "no error")")
+            print("Error infering MTU: \(error.description())")
         }
 
 
