@@ -100,160 +100,85 @@ public enum BleTransportError: Error {
     // MARK: - Public Methods
     
     public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping ErrorResponse) {
-        if self.bluejay.isScanning {
-            self.bluejay.stopScanning()
+        DispatchQueue.main.async {
+            if self.bluejay.isScanning {
+                self.bluejay.stopScanning()
+            }
+            
+            if self.bluejay.isConnected {
+                self.bluejay.disconnect()
+            }
+            
+            self.peripheralsServicesTuple = [] /// We clean `peripheralsServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to devices
+            
+            self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
+                guard let self = self else { return .continue }
+                if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
+                    callback(self.peripheralsServicesTuple)
+                }
+                return .continue
+            }, expired: { [weak self] discovery, discoveries in
+                guard let self = self else { return .continue }
+                if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
+                    callback(self.peripheralsServicesTuple)
+                }
+                return .continue
+            }, stopped: { [weak self] discoveries, error in
+                guard let self = self else { return }
+                self.updatePeripheralsServicesTuple(discoveries: discoveries)
+                if let error = error {
+                    print("Stopped scanning with error: \(error)")
+                    stopped(.scanError(description: error.localizedDescription))
+                } else {
+                    stopped(nil)
+                }
+            })
         }
-        
-        if self.bluejay.isConnected {
-            self.bluejay.disconnect()
-        }
-        
-        self.peripheralsServicesTuple = [] /// We clean `peripheralsServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to devices
-        
-        self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
-            guard let self = self else { return .continue }
-            if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
-                callback(self.peripheralsServicesTuple)
-            }
-            return .continue
-        }, expired: { [weak self] discovery, discoveries in
-            guard let self = self else { return .continue }
-            if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
-                callback(self.peripheralsServicesTuple)
-            }
-            return .continue
-        }, stopped: { [weak self] discoveries, error in
-            guard let self = self else { return }
-            self.updatePeripheralsServicesTuple(discoveries: discoveries)
-            if let error = error {
-                print("Stopped scanning with error: \(error)")
-                stopped(.scanError(description: error.localizedDescription))
-            } else {
-                stopped(nil)
-            }
-        })
     }
     
     @objc
     public func stopScanning() {
-        self.bluejay.stopScanning()
+        DispatchQueue.main.async {
+            self.bluejay.stopScanning()
+        }
     }
     
     public func create(disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
-        scan { [weak self] discoveries in
-            guard let firstDiscovery = discoveries.first else { failure(nil); return }
-            self?.connect(toPeripheralID: firstDiscovery.peripheral, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedPeripheral in
-                if self?.bluejay.isScanning == true {
-                    self?.bluejay.stopScanning()
+        DispatchQueue.main.async {
+            self.scan { [weak self] discoveries in
+                guard let firstDiscovery = discoveries.first else { failure(nil); return }
+                self?.connect(toPeripheralID: firstDiscovery.peripheral, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedPeripheral in
+                    if self?.bluejay.isScanning == true {
+                        self?.bluejay.stopScanning()
+                    }
+                    success(connectedPeripheral)
+                }, failure: failure)
+            } stopped: { error in
+                if let error = error {
+                    failure(error)
                 }
-                success(connectedPeripheral)
-            }, failure: failure)
-        } stopped: { error in
-            if let error = error {
-                failure(error)
             }
         }
     }
     
     public func exchange(apdu apduToSend: APDU, callback: @escaping (Result<String, BleTransportError>) -> Void) {
-        guard !isExchanging else {
-            callback(.failure(.pendingActionOnDevice))
-            return
-        }
-        
-        print("Sending", "->", apduToSend.data.hexEncodedString())
-        self.exchangeCallback = callback
-        self.isExchanging = true
-        self.writeAPDU(apduToSend)
-    }
-    
-    /**
-     * Write the next ble frame to the device,  only triggered from the exchange/send methods.
-     **/
-    fileprivate func writeAPDU(_ apdu: APDU, withResponse: Bool = false) {
-        guard !apdu.isEmpty else { self.exchangeCallback?(.failure(.writeError(description: "APDU is empty"))); return }
-        send(apdu: apdu) {
-            apdu.next()
-            if !apdu.isEmpty {
-                self.writeAPDU(apdu)
-            }
-        } failure: { error in
-            self.isExchanging = false
-            self.exchangeCallback?(.failure(.writeError(description: error?.description() ?? "NO ERROR")))
-        }
-
-    }
-    
-    fileprivate func startListening() {
-        self.listen { [weak self] apduReceived in
-            guard let self = self else { return }
-            if self.mtuWaitingForCallback != nil {
-                self.parseMTUresponse(apduReceived: apduReceived)
-                self.mtuWaitingForCallback = nil
+        DispatchQueue.main.async {
+            guard !self.isExchanging else {
+                callback(.failure(.pendingActionOnDevice))
                 return
             }
-            /// This might be a partial response
-            var offset = 6
-            let hex = apduReceived.data.hexEncodedString()
             
-            if self.currentResponse == "" {
-                offset = 10
-                
-                let a = hex.index(hex.startIndex, offsetBy: 6)
-                let b = hex.index(hex.startIndex, offsetBy: 10)
-                let expectedLength = (Int(hex[a..<b], radix: 16) ?? 1) * 2
-                self.currentResponseRemainingLength = expectedLength
-                print("Expected length is: \(expectedLength)")
-            }
-            
-            let cleanAPDU = hex.suffix(hex.count - offset)
-            
-            self.currentResponse += cleanAPDU
-            self.currentResponseRemainingLength -= cleanAPDU.count
-            
-            print("Received: \(cleanAPDU)")
-            
-            if self.currentResponseRemainingLength <= 0 {
-                /// We got the full response in `currentResponse`
-                self.isExchanging = false
-                self.exchangeCallback?(.success(self.currentResponse))
-                self.currentResponse = ""
-                self.currentResponseRemainingLength = 0
-            } else {
-                print("WAITING_FOR_NEXT_MESSAGE!!")
-            }
-        } failure: { [weak self] error in
-            if let error = error {
-                if case .pairingError = error {
-                    self?.connectFailure?(error)
-                    self?.disconnect(immediate: false, completion: nil)
-                } else {
-                    self?.exchangeCallback?(.failure(error))
-                }
-            }
-            self?.isExchanging = false
-        }
-    }
-    
-    fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping ErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { failure(.listenError(description: "Not connected")); return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching peripheralService")); return }
-        self.bluejay.listen(to: peripheralService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
-            switch result {
-            case .success(let apdu):
-                apduReceived(apdu)
-            case .failure(let error):
-                if (error as NSError).code == CBATTError.insufficientEncryption.rawValue {
-                    failure(.pairingError(description: error.localizedDescription))
-                } else {
-                    failure(.listenError(description: error.localizedDescription))
-                }
-            }
+            print("Sending", "->", apduToSend.data.hexEncodedString())
+            self.exchangeCallback = callback
+            self.isExchanging = true
+            self.writeAPDU(apduToSend)
         }
     }
     
     public func send(apdu: APDU, success: @escaping (()->()), failure: @escaping ErrorResponse) {
-        self.send(value: apdu, success: success, failure: failure)
+        DispatchQueue.main.async {
+            self.send(value: apdu, success: success, failure: failure)
+        }
     }
     
     /// The inner implementation of `send`
@@ -382,6 +307,91 @@ public enum BleTransportError: Error {
             }
         }
 
+    }
+    
+    /**
+     * Write the next ble frame to the device,  only triggered from the exchange/send methods.
+     **/
+    fileprivate func writeAPDU(_ apdu: APDU, withResponse: Bool = false) {
+        guard !apdu.isEmpty else { self.exchangeCallback?(.failure(.writeError(description: "APDU is empty"))); return }
+        send(apdu: apdu) {
+            apdu.next()
+            if !apdu.isEmpty {
+                self.writeAPDU(apdu)
+            }
+        } failure: { error in
+            self.isExchanging = false
+            self.exchangeCallback?(.failure(.writeError(description: error?.description() ?? "NO ERROR")))
+        }
+        
+    }
+    
+    fileprivate func startListening() {
+        self.listen { [weak self] apduReceived in
+            guard let self = self else { return }
+            if self.mtuWaitingForCallback != nil {
+                self.parseMTUresponse(apduReceived: apduReceived)
+                self.mtuWaitingForCallback = nil
+                return
+            }
+            /// This might be a partial response
+            var offset = 6
+            let hex = apduReceived.data.hexEncodedString()
+            
+            if self.currentResponse == "" {
+                offset = 10
+                
+                let a = hex.index(hex.startIndex, offsetBy: 6)
+                let b = hex.index(hex.startIndex, offsetBy: 10)
+                let expectedLength = (Int(hex[a..<b], radix: 16) ?? 1) * 2
+                self.currentResponseRemainingLength = expectedLength
+                print("Expected length is: \(expectedLength)")
+            }
+            
+            let cleanAPDU = hex.suffix(hex.count - offset)
+            
+            self.currentResponse += cleanAPDU
+            self.currentResponseRemainingLength -= cleanAPDU.count
+            
+            print("Received: \(cleanAPDU)")
+            
+            if self.currentResponseRemainingLength <= 0 {
+                /// We got the full response in `currentResponse`
+                self.isExchanging = false
+                self.exchangeCallback?(.success(self.currentResponse))
+                self.currentResponse = ""
+                self.currentResponseRemainingLength = 0
+            } else {
+                print("WAITING_FOR_NEXT_MESSAGE!!")
+            }
+        } failure: { [weak self] error in
+            if let error = error {
+                if case .pairingError = error {
+                    self?.connectFailure?(error)
+                    self?.disconnect(immediate: false, completion: nil)
+                } else {
+                    self?.exchangeCallback?(.failure(error))
+                }
+            }
+            self?.isExchanging = false
+        }
+    }
+    
+    fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping ErrorResponse) {
+        guard let connectedPeripheral = connectedPeripheral else { failure(.listenError(description: "Not connected")); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching peripheralService")); return }
+        self.bluejay.listen(to: peripheralService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
+            switch result {
+            case .success(let apdu):
+                apduReceived(apdu)
+            case .failure(let error):
+                if (error as NSError).code == CBATTError.insufficientEncryption.rawValue {
+                    failure(.pairingError(description: error.localizedDescription))
+                } else {
+                    failure(.listenError(description: error.localizedDescription))
+                }
+            }
+        }
     }
     
     fileprivate func inferMTU() {
