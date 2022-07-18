@@ -175,9 +175,33 @@ public enum BleTransportError: Error {
         }
     }
     
+    public func exchange(apdu apduToSend: APDU) async throws -> String {
+        return try await withCheckedThrowingContinuation { continuation in
+            exchange(apdu: apduToSend) { result in
+                switch result {
+                case .success(let response):
+                    continuation.resume(returning: response)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    
     public func send(apdu: APDU, success: @escaping (()->()), failure: @escaping ErrorResponse) {
         DispatchQueue.main.async {
             self.send(value: apdu, success: success, failure: failure)
+        }
+    }
+    
+    public func send(apdu: APDU) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            send(apdu: apdu) {
+                continuation.resume()
+            } failure: { error in
+                continuation.resume(throwing: error)
+            }
+
         }
     }
     
@@ -229,6 +253,18 @@ public enum BleTransportError: Error {
                 completion?(nil)
             case .failure(let error):
                 completion?(.lowerLevelError(description: error.localizedDescription))
+            }
+        }
+    }
+    
+    public func disconnect(immediate: Bool) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            disconnect(immediate: immediate) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
             }
         }
     }

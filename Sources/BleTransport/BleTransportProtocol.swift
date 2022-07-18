@@ -48,6 +48,7 @@ public protocol BleTransportProtocol {
     ///   - apduToSend: `APDU` to send.
     ///   - callback: Callback that contains the result of the exchange.
     func exchange(apdu apduToSend: APDU, callback: @escaping (Result<String, BleTransportError>) -> Void)
+    func exchange(apdu apduToSend: APDU) async throws -> String
     
     /// Send an `APDU` message.
     /// - Parameters:
@@ -55,12 +56,14 @@ public protocol BleTransportProtocol {
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
     func send(apdu: APDU, success: @escaping (()->()), failure: @escaping ErrorResponse)
+    func send(apdu: APDU) async throws
     
     /// Disconnect from the passed device.
     /// - Parameters:
     ///   - immediate: Whether the disconnection should be queued or executed immediately. Passing `false` will wait until the current tasks have been completed.
     ///   - completion: Callback called when the device disconnection has failed with an error or disconnected successfully (`error == nil`).
     func disconnect(immediate: Bool, completion: OptionalErrorResponse?)
+    func disconnect(immediate: Bool) async throws
     
     
     /// Get notified when bluetooth changes availability

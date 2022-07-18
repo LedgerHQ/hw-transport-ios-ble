@@ -63,7 +63,7 @@ class AppInstaller {
     fileprivate func nextFrame() {
         guard let currentAPDU = self.APDUQueue.first else { self.APDUQueue.removeAll(); return }
         print("NANO <- \(currentAPDU.toBluetoothData().hexEncodedString())")
-        self.transport.exchange(apdu: currentAPDU) { [weak self] result in
+        /*self.transport.exchange(apdu: currentAPDU) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let hexResponse):
@@ -74,6 +74,32 @@ class AppInstaller {
                 
                 self.handleDeviceResponse(hexResponse)
             case .failure(let error):
+                self.APDUQueue.removeAll()
+                switch error {
+                case .readError(let description):
+                    print(description)
+                case .writeError(let description):
+                    print(description)
+                case .pendingActionOnDevice:
+                    print("PENDING DEVICE ACTION!")
+                default:
+                    print("Another error thrown!")
+                }
+            }
+        }*/
+        Task() {
+            do {
+                let hexResponse = try await self.transport.exchange(apdu: currentAPDU)
+                self.APDUQueue.removeFirst()
+                
+                let completedAPDUcount = self.bulkAPDUcount - self.APDUQueue.count
+                await MainActor.run {
+                    self.installingProtocol.progressUpdated(percentageCompleted: Float(completedAPDUcount) / Float(self.bulkAPDUcount), finished: self.APDUQueue.count == 0 && self.installing)
+                }
+                
+                self.handleDeviceResponse(hexResponse)
+            } catch {
+                guard let error = error as? BleTransportError else { return }
                 self.APDUQueue.removeAll()
                 switch error {
                 case .readError(let description):
