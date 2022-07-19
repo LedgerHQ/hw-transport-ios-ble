@@ -13,6 +13,7 @@ public typealias PeripheralInfoTuple = (peripheral: PeripheralIdentifier, rssi: 
 public typealias PeripheralResponse = ((PeripheralIdentifier)->())
 public typealias PeripheralsWithServicesResponse = (([PeripheralInfoTuple])->())
 public typealias APDUResponse = ((APDU)->())
+public typealias EmptyResponse = (()->())
 public typealias ErrorResponse = ((BleTransportError)->())
 public typealias OptionalErrorResponse = ((BleTransportError?)->())
 
@@ -69,4 +70,9 @@ public protocol BleTransportProtocol {
     /// Get notified when bluetooth changes availability
     /// - Parameter completion: Callback called when bluetooth becomes available (or immediately if was already available)
     func bluetoothAvailabilityCallback(completion: @escaping ((_ availability: Bool)->()))
+    
+    
+    /// Get notified once when the device disconnects
+    /// - Parameter completion: Callback called when the device disconnects. This will be called only once.
+    func notifyDisconnected(completion: @escaping EmptyResponse)
 }

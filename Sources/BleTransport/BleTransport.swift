@@ -57,6 +57,7 @@ public enum BleTransportError: Error {
     private var peripheralsServicesTuple = [PeripheralInfoTuple]()
     private var connectedPeripheral: PeripheralIdentifier?
     private var bluetoothAvailabilityCompletion: ((Bool)->())?
+    private var notifyDisconnectedCompletion: EmptyResponse?
     
     /// Exchange handling
     private var exchangeCallback: ((Result<String, BleTransportError>) -> Void)?
@@ -302,6 +303,14 @@ public enum BleTransportError: Error {
         bluetoothAvailabilityCompletion = completion
     }
     
+    public func notifyDisconnected(completion: @escaping EmptyResponse) {
+        if !isConnected {
+            completion()
+        } else {
+            notifyDisconnectedCompletion = completion
+        }
+    }
+    
     // MARK: - Private methods
     
     /// Updates the current list of peripherals matching them with their service.
@@ -461,6 +470,8 @@ public enum BleTransportError: Error {
     fileprivate func clearConnection() {
         connectedPeripheral = nil
         isExchanging = false
+        notifyDisconnectedCompletion?()
+        notifyDisconnectedCompletion = nil /// We call `notifyDisconnectedCompletion` only once since it's used to be notified about the next disconnection not all of them
         disconnectedCallback?()
     }
 }
