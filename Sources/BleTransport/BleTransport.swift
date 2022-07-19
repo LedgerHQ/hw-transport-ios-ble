@@ -143,10 +143,10 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func create(timeout: Timeout, disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping OptionalErrorResponse) {
+    public func create(timeout: Timeout, disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse) {
         DispatchQueue.main.async {
             self.scan { [weak self] discoveries in
-                guard let firstDiscovery = discoveries.first else { failure(nil); return }
+                guard let firstDiscovery = discoveries.first else { return }
                 self?.connect(toPeripheralID: firstDiscovery.peripheral, timeout: timeout, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedPeripheral in
                     if self?.bluejay.isScanning == true {
                         self?.bluejay.stopScanning()
