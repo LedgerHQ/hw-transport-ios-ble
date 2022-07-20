@@ -14,8 +14,8 @@ public typealias PeripheralResponse = ((PeripheralIdentifier)->())
 public typealias PeripheralsWithServicesResponse = (([PeripheralInfoTuple])->())
 public typealias APDUResponse = ((APDU)->())
 public typealias EmptyResponse = (()->())
-public typealias ErrorResponse = ((BleTransportError)->())
-public typealias OptionalErrorResponse = ((BleTransportError?)->())
+public typealias BleErrorResponse = ((BleTransportError)->())
+public typealias OptionalBleErrorResponse = ((BleTransportError?)->())
 
 public protocol BleTransportProtocol {
     
@@ -27,7 +27,7 @@ public protocol BleTransportProtocol {
     /// Scan for reachable devices with the services provided.
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered devices changes.
-    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalErrorResponse)
+    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
     
     /// Stop scanning for reachable devices.
     ///
@@ -36,13 +36,13 @@ public protocol BleTransportProtocol {
     /// Attempt to connect to a given peripheral.
     ///
     /// - Parameter peripheral: The peripheral to connect to.
-    func connect(toPeripheralID peripheral: PeripheralIdentifier, timeout: Timeout, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
+    func connect(toPeripheralID peripheral: PeripheralIdentifier, timeout: Timeout, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse)
     
     /// Convenience method to `scan` for devices and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(timeout: Timeout, disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping ErrorResponse)
+    func create(timeout: Timeout, disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse)
     
     /// Send an `APDU` and wait for the response from the device.
     /// - Parameters:
@@ -56,14 +56,14 @@ public protocol BleTransportProtocol {
     ///   - apdu: `APDU` to send.
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func send(apdu: APDU, success: @escaping (()->()), failure: @escaping ErrorResponse)
+    func send(apdu: APDU, success: @escaping (()->()), failure: @escaping BleErrorResponse)
     func send(apdu: APDU) async throws
     
     /// Disconnect from the passed device.
     /// - Parameters:
     ///   - immediate: Whether the disconnection should be queued or executed immediately. Passing `false` will wait until the current tasks have been completed.
     ///   - completion: Callback called when the device disconnection has failed with an error or disconnected successfully (`error == nil`).
-    func disconnect(immediate: Bool, completion: OptionalErrorResponse?)
+    func disconnect(immediate: Bool, completion: OptionalBleErrorResponse?)
     func disconnect(immediate: Bool) async throws
     
     
