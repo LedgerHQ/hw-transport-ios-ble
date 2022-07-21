@@ -159,19 +159,24 @@ public enum BleStatusError: Error {
     
     public func create(timeout: Timeout, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
         self.timeout = timeout
-        DispatchQueue.main.async {
-            self.scan { [weak self] discoveries in
-                guard let firstDiscovery = discoveries.first else { return }
-                self?.connect(toDeviceID: firstDiscovery.device, timeout: timeout, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedDevice in
-                    if self?.bluejay.isScanning == true {
-                        self?.bluejay.stopScanning()
-                    }
-                    success(connectedDevice)
-                }, failure: failure)
-            } stopped: { error in
-                if let error = error {
-                    failure(error)
-                }
+        
+        var connecting = false
+        
+        func attemptConnecting(deviceInfo: DeviceInfoTuple) {
+            connect(toDeviceID: deviceInfo.device, timeout: timeout, disconnectedCallback: disconnectedCallback, success: { connectedDevice in
+                success(connectedDevice)
+            }, failure: failure)
+        }
+        
+        self.scan { discoveries in
+            guard let firstDiscovery = discoveries.first else { return }
+            if !connecting {
+                connecting = true
+                attemptConnecting(deviceInfo: firstDiscovery)
+            }
+        } stopped: { error in
+            if let error = error {
+                failure(error)
             }
         }
     }
