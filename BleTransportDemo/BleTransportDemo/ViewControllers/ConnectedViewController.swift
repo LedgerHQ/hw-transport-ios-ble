@@ -16,11 +16,11 @@ class ConnectedViewController: UIViewController {
     @IBOutlet weak var progressView: UIProgressView!
     
     var transport: BleTransportProtocol?
-    var connectedDevice: PeripheralIdentifier?
+    var connectedDevice: DeviceIdentifier?
     
     var appInstaller: AppInstaller?
     
-    var disconnectTapped: ((PeripheralIdentifier)->())?
+    var disconnectTapped: ((DeviceIdentifier)->())?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,6 +44,16 @@ class ConnectedViewController: UIViewController {
         
         appInstaller = AppInstaller(transport: transport, installingProtocol: self)
         appInstaller?.installBTC()
+        
+        /*BleTransport.shared.openAppIfNeeded("Solana") { result in
+            switch result {
+            case .success(_):
+                print("Opened!")
+            case .failure(let error):
+                print(error)
+            }
+        }*/
+
     }
     
     @IBAction func disconnectButtonTapped(_ sender: Any) {

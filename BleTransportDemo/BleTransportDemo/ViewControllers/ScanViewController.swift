@@ -17,9 +17,9 @@ class ScanViewController: UIViewController {
     @IBOutlet weak var infoLabel: UILabel!
     @IBOutlet weak var devicesFoundLabel: UILabel!
     
-    var devicesServicesTuple = [PeripheralInfoTuple]()
-    var deviceConnecting: PeripheralIdentifier?
-    var connectedDevice: PeripheralIdentifier?
+    var devicesServicesTuple = [DeviceInfoTuple]()
+    var deviceConnecting: DeviceIdentifier?
+    var connectedDevice: DeviceIdentifier?
     
     let configuration = BleTransportConfiguration(services: [BleService(serviceUUID: "13D63400-2C97-0004-0000-4C6564676572",
                                                                         notifyUUID: "13d63400-2c97-0004-0001-4c6564676572",
@@ -35,11 +35,11 @@ class ScanViewController: UIViewController {
         transport = BleTransport.shared
     }
     
-    fileprivate func connectToDevice(_ device: PeripheralIdentifier) {
+    fileprivate func connectToDevice(_ device: DeviceIdentifier) {
         guard deviceConnecting == nil else { return }
         deviceConnecting = device
         
-        transport?.connect(toPeripheralID: device, timeout: .seconds(5)) {
+        transport?.connect(toDeviceID: device, timeout: .seconds(5)) {
             print("Device disconnected!")
         } success: { [weak self] peripheralConnected in
             self?.connectedDevice = peripheralConnected
@@ -141,7 +141,7 @@ extension ScanViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "deviceCell") as! DeviceFoundTableViewCell
         
-        let rowDevice = devicesServicesTuple[indexPath.row].peripheral
+        let rowDevice = devicesServicesTuple[indexPath.row].device
         cell.setupCell(deviceName: rowDevice.name, connecting: rowDevice == deviceConnecting)
         
         cell.connectTapped = { [weak self] in

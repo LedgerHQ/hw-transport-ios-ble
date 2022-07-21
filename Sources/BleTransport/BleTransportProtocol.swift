@@ -9,13 +9,14 @@ import Foundation
 import Bluejay
 import CoreBluetooth
 
-public typealias PeripheralInfoTuple = (peripheral: PeripheralIdentifier, rssi: Int, serviceUUID: CBUUID, canWriteWithoutResponse: Bool?)
-public typealias PeripheralResponse = ((PeripheralIdentifier)->())
-public typealias PeripheralsWithServicesResponse = (([PeripheralInfoTuple])->())
+public typealias DeviceInfoTuple = (device: DeviceIdentifier, rssi: Int, serviceUUID: CBUUID, canWriteWithoutResponse: Bool?)
+public typealias DeviceResponse = ((DeviceIdentifier)->())
+public typealias DevicesWithServicesResponse = (([DeviceInfoTuple])->())
 public typealias APDUResponse = ((APDU)->())
 public typealias EmptyResponse = (()->())
 public typealias BleErrorResponse = ((BleTransportError)->())
 public typealias OptionalBleErrorResponse = ((BleTransportError?)->())
+public typealias ErrorResponse = ((Error)->())
 
 public protocol BleTransportProtocol {
     
@@ -24,25 +25,33 @@ public protocol BleTransportProtocol {
     var isBluetoothAvailable: Bool { get }
     var isConnected: Bool { get }
     
+    // MARK: - Scan
+    
     /// Scan for reachable devices with the services provided.
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered devices changes.
-    func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
+    func scan(callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
     
     /// Stop scanning for reachable devices.
     ///
     func stopScanning()
     
+    
+    // MARK: - Connect
+    
     /// Attempt to connect to a given peripheral.
     ///
     /// - Parameter peripheral: The peripheral to connect to.
-    func connect(toPeripheralID peripheral: PeripheralIdentifier, timeout: Timeout, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse)
+    func connect(toDeviceID device: DeviceIdentifier, timeout: Timeout, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
     
     /// Convenience method to `scan` for devices and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(timeout: Timeout, disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse)
+    func create(timeout: Timeout, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
+    
+    
+    // MARK: - Messaging
     
     /// Send an `APDU` and wait for the response from the device.
     /// - Parameters:
@@ -56,8 +65,11 @@ public protocol BleTransportProtocol {
     ///   - apdu: `APDU` to send.
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func send(apdu: APDU, success: @escaping (()->()), failure: @escaping BleErrorResponse)
+    func send(apdu: APDU, success: @escaping EmptyResponse, failure: @escaping BleErrorResponse)
     func send(apdu: APDU) async throws
+    
+    
+    // MARK: - Disconnect
     
     /// Disconnect from the passed device.
     /// - Parameters:
@@ -67,12 +79,30 @@ public protocol BleTransportProtocol {
     func disconnect(immediate: Bool) async throws
     
     
+    // MARK: - Notifications
+    
     /// Get notified when bluetooth changes availability
     /// - Parameter completion: Callback called when bluetooth becomes available (or immediately if was already available)
     func bluetoothAvailabilityCallback(completion: @escaping ((_ availability: Bool)->()))
     
-    
     /// Get notified once when the device disconnects
     /// - Parameter completion: Callback called when the device disconnects. This will be called only once.
     func notifyDisconnected(completion: @escaping EmptyResponse)
+    
+    
+    // MARK: - Convenience methods
+    
+    func getAppAndVersion(success: @escaping ((AppInfo)->()), failure: @escaping ErrorResponse)
+    func getAppAndVersion() async throws -> AppInfo
+    
+    func openAppIfNeeded(_ name: String, completion: @escaping (Result<Void, Error>) -> Void)
+    func openAppIfNeeded(_ name: String) async throws
+    
+    func closeApp(success: @escaping EmptyResponse, failure: @escaping ErrorResponse)
+    func closeApp() async throws
+}
+
+public struct AppInfo {
+    let name: String
+    let version: String
 }

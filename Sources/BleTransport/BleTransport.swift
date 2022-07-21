@@ -9,6 +9,7 @@ import Foundation
 import Bluejay
 import CoreBluetooth
 
+/// Errors thrown when scanning/sending/receiving/connecting
 public enum BleTransportError: Error {
     case pendingActionOnDevice
     case userRefusedOnDevice
@@ -44,6 +45,16 @@ public enum BleTransportError: Error {
     }
 }
 
+/// Errors received as `status` sent in a message from a device
+public enum BleStatusError: Error {
+    case userRejected
+    case appNotAvailableInDevice
+    case noStatus
+    case formatNotSupported
+    case couldNotParseResponseData
+    case unknown
+}
+
 @objc public class BleTransport: NSObject, BleTransportProtocol {
     
     public static var shared: BleTransportProtocol = BleTransport(configuration: nil, debugMode: false)
@@ -51,11 +62,13 @@ public enum BleTransportError: Error {
     private let bluejay: Bluejay
     
     private let configuration: BleTransportConfiguration
-    private var disconnectedCallback: (()->())?
+    private var disconnectedCallback: EmptyResponse? /// Once `disconnectCallback` is set it never becomes `nil` again so we can reuse it in methods where we reconnect to the device blindly like `openApp/closeApp`
     private var connectFailure: ((BleTransportError)->())?
     
-    private var peripheralsServicesTuple = [PeripheralInfoTuple]()
-    private var connectedPeripheral: PeripheralIdentifier?
+    private var timeout: Timeout = .seconds(5) /// `timeout` will be overriden every time a value gets passed to `connect/create`
+    
+    private var devicesServicesTuple = [DeviceInfoTuple]()
+    private var connectedDevice: DeviceIdentifier?
     private var bluetoothAvailabilityCompletion: ((Bool)->())?
     private var notifyDisconnectedCompletion: EmptyResponse?
     
@@ -66,7 +79,7 @@ public enum BleTransportError: Error {
     private var currentResponseRemainingLength = 0
     
     /// Infer MTU
-    private var mtuWaitingForCallback: PeripheralResponse?
+    private var mtuWaitingForCallback: DeviceResponse?
     
     @objc
     public var isBluetoothAvailable: Bool {
@@ -75,7 +88,7 @@ public enum BleTransportError: Error {
     
     @objc
     public var isConnected: Bool {
-        connectedPeripheral != nil
+        connectedDevice != nil
     }
     
     // MARK: - Initialization
@@ -100,7 +113,7 @@ public enum BleTransportError: Error {
     
     // MARK: - Public Methods
     
-    public func scan(callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalBleErrorResponse) {
+    public func scan(callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse) {
         DispatchQueue.main.async {
             if self.bluejay.isScanning {
                 self.bluejay.stopScanning()
@@ -110,23 +123,23 @@ public enum BleTransportError: Error {
                 self.bluejay.disconnect()
             }
             
-            self.peripheralsServicesTuple = [] /// We clean `peripheralsServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to devices
+            self.devicesServicesTuple = [] /// We clean `devicesServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to devices
             
             self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
                 guard let self = self else { return .continue }
-                if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
-                    callback(self.peripheralsServicesTuple)
+                if self.updateDevicesServicesTuple(discoveries: discoveries) {
+                    callback(self.devicesServicesTuple)
                 }
                 return .continue
             }, expired: { [weak self] discovery, discoveries in
                 guard let self = self else { return .continue }
-                if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
-                    callback(self.peripheralsServicesTuple)
+                if self.updateDevicesServicesTuple(discoveries: discoveries) {
+                    callback(self.devicesServicesTuple)
                 }
                 return .continue
             }, stopped: { [weak self] discoveries, error in
                 guard let self = self else { return }
-                self.updatePeripheralsServicesTuple(discoveries: discoveries)
+                self.updateDevicesServicesTuple(discoveries: discoveries)
                 if let error = error {
                     print("Stopped scanning with error: \(error)")
                     stopped(.scanError(description: error.localizedDescription))
@@ -144,15 +157,16 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func create(timeout: Timeout, disconnectedCallback: @escaping (()->()), success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse) {
+    public func create(timeout: Timeout, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
+        self.timeout = timeout
         DispatchQueue.main.async {
             self.scan { [weak self] discoveries in
                 guard let firstDiscovery = discoveries.first else { return }
-                self?.connect(toPeripheralID: firstDiscovery.peripheral, timeout: timeout, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedPeripheral in
+                self?.connect(toDeviceID: firstDiscovery.device, timeout: timeout, disconnectedCallback: disconnectedCallback, success: { [weak self] connectedDevice in
                     if self?.bluejay.isScanning == true {
                         self?.bluejay.stopScanning()
                     }
-                    success(connectedPeripheral)
+                    success(connectedDevice)
                 }, failure: failure)
             } stopped: { error in
                 if let error = error {
@@ -176,33 +190,9 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func exchange(apdu apduToSend: APDU) async throws -> String {
-        return try await withCheckedThrowingContinuation { continuation in
-            exchange(apdu: apduToSend) { result in
-                switch result {
-                case .success(let response):
-                    continuation.resume(returning: response)
-                case .failure(let error):
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-    
-    public func send(apdu: APDU, success: @escaping (()->()), failure: @escaping BleErrorResponse) {
+    public func send(apdu: APDU, success: @escaping EmptyResponse, failure: @escaping BleErrorResponse) {
         DispatchQueue.main.async {
             self.send(value: apdu, success: success, failure: failure)
-        }
-    }
-    
-    public func send(apdu: APDU) async throws {
-        return try await withCheckedThrowingContinuation { continuation in
-            send(apdu: apdu) {
-                continuation.resume()
-            } failure: { error in
-                continuation.resume(throwing: error)
-            }
-
         }
     }
     
@@ -212,31 +202,31 @@ public enum BleTransportError: Error {
     ///   - retryWithResponse: Used internally in the function if `writeWithoutResponse` fails the first time
     ///   - success: The success callback
     ///   - failure: The failue callback
-    fileprivate func send<S: Sendable>(value: S, retryWithResponse: Bool = false, success: @escaping (()->()), failure: @escaping BleErrorResponse) {
-        guard self.bluejay.isConnected, let connectedPeripheral = connectedPeripheral else { failure(.writeError(description: "Not connected")); return }
-        guard let connectedPeripheralTuple = peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "peripheralsServiceTuple doesn't contain conencted peripheral UUID"))); return }
-        guard let peripheralService = configuration.services.first(where: { configService in connectedPeripheralTuple.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No matching peripheralService")); return }
+    fileprivate func send<S: Sendable>(value: S, retryWithResponse: Bool = false, success: @escaping EmptyResponse, failure: @escaping BleErrorResponse) {
+        guard self.bluejay.isConnected, let connectedDevice = connectedDevice else { failure(.writeError(description: "Not connected")); return }
+        guard let connectedDeviceTuple = devicesServicesTuple.first(where: { $0.device.uuid == connectedDevice.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "devicesServiceTuple doesn't contain conencted device UUID"))); return }
+        guard let deviceService = configuration.services.first(where: { configService in connectedDeviceTuple.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No matching deviceService")); return }
         let writeCharacteristic: CharacteristicIdentifier
         let type: CBCharacteristicWriteType
-        if let canWriteWithoutCharacteristic = connectedPeripheralTuple.canWriteWithoutResponse {
-            writeCharacteristic = peripheralService.writeCharacteristic(canWriteWithoutResponse: canWriteWithoutCharacteristic)
+        if let canWriteWithoutCharacteristic = connectedDeviceTuple.canWriteWithoutResponse {
+            writeCharacteristic = deviceService.writeCharacteristic(canWriteWithoutResponse: canWriteWithoutCharacteristic)
             type = canWriteWithoutCharacteristic ? .withoutResponse : .withResponse
         } else {
-            writeCharacteristic = retryWithResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse
+            writeCharacteristic = retryWithResponse ? deviceService.writeWithResponse : deviceService.writeWithoutResponse
             type = retryWithResponse ? .withResponse : .withoutResponse
         }
         self.bluejay.write(to: writeCharacteristic, value: value, type: type) { [weak self] result in
             guard let self = self else { failure(.writeError(description: "Self got deallocated")); return }
             switch result {
             case .success:
-                if connectedPeripheralTuple.canWriteWithoutResponse == nil {
-                    if let tupleIndex = self.peripheralsServicesTuple.firstIndex(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) {
-                        self.peripheralsServicesTuple[tupleIndex].canWriteWithoutResponse = type == .withoutResponse
+                if connectedDeviceTuple.canWriteWithoutResponse == nil {
+                    if let tupleIndex = self.devicesServicesTuple.firstIndex(where: { $0.device.uuid == connectedDevice.uuid }) {
+                        self.devicesServicesTuple[tupleIndex].canWriteWithoutResponse = type == .withoutResponse
                     }
                 }
                 success()
             case .failure(let error):
-                if connectedPeripheralTuple.canWriteWithoutResponse == nil {
+                if connectedDeviceTuple.canWriteWithoutResponse == nil {
                     self.send(value: value, retryWithResponse: true, success: success, failure: failure)
                 } else {
                     print(error.localizedDescription)
@@ -250,7 +240,7 @@ public enum BleTransportError: Error {
         self.bluejay.disconnect(immediate: immediate) { [weak self] result in
             switch result {
             case .disconnected(_):
-                self?.connectedPeripheral = nil
+                self?.connectedDevice = nil
                 completion?(nil)
             case .failure(let error):
                 completion?(.lowerLevelError(description: error.localizedDescription))
@@ -258,29 +248,19 @@ public enum BleTransportError: Error {
         }
     }
     
-    public func disconnect(immediate: Bool) async throws {
-        return try await withCheckedThrowingContinuation { continuation in
-            disconnect(immediate: immediate) { error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume()
-                }
-            }
-        }
-    }
-    
-    public func connect(toPeripheralID peripheral: PeripheralIdentifier, timeout: Timeout, disconnectedCallback: (()->())?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse) {
+    public func connect(toDeviceID device: DeviceIdentifier, timeout: Timeout, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
         if self.bluejay.isScanning {
             self.bluejay.stopScanning()
         }
         self.disconnectedCallback = disconnectedCallback
         
+        self.timeout = timeout
+        
         let connect = {
-            self.bluejay.connect(peripheral, timeout: Timeout.seconds(5), warningOptions: nil) { [weak self] result in
+            self.bluejay.connect(device.toPeripheralIdentifier(), timeout: timeout, warningOptions: nil) { [weak self] result in
                 switch result {
                 case .success(let peripheralIdentifier):
-                    self?.connectedPeripheral = peripheralIdentifier
+                    self?.connectedDevice = DeviceIdentifier(peripheralIdentifier: peripheralIdentifier)
                     self?.connectFailure = failure
                     self?.startListening()
                     self?.mtuWaitingForCallback = success
@@ -291,8 +271,8 @@ public enum BleTransportError: Error {
             }
         }
         
-        if !peripheralsServicesTuple.contains(where: { $0.peripheral == peripheral }) {
-            scanAndDiscoverBeforeConnecting(lookingFor: peripheral, connectFunction: connect, failure: failure)
+        if !devicesServicesTuple.contains(where: { $0.device == device }) {
+            scanAndDiscoverBeforeConnecting(lookingFor: device, connectFunction: connect, failure: failure)
         } else {
             connect()
         }
@@ -311,44 +291,118 @@ public enum BleTransportError: Error {
         }
     }
     
+    public func getAppAndVersion(success: @escaping ((AppInfo)->()), failure: @escaping ErrorResponse) {
+        let apdu = APDU(data: [0xb0, 0x01, 0x00, 0x00])
+        exchange(apdu: apdu) { result in
+            switch result {
+            case .success(let string):
+                let data = string.UInt8Array()
+                var i = 0
+                let format = data[i]
+                if format != 1 {
+                    failure(BleStatusError.formatNotSupported)
+                    return
+                }
+                i += 1
+                let nameLength = Int(data[i])
+                i += 1
+                let nameData = data[i..<i+Int(nameLength)]
+                i += nameLength
+                let versionLength = Int(data[i])
+                i += 1
+                let versionData = data[i..<i+Int(versionLength)]
+                i += versionLength
+                guard let name = String(data: Data(nameData), encoding: .ascii) else { failure(BleStatusError.couldNotParseResponseData); return }
+                guard let version = String(data: Data(versionData), encoding: .ascii) else { failure(BleStatusError.couldNotParseResponseData); return }
+                success(AppInfo(name: name, version: version))
+            case .failure(let error):
+                failure(error)
+            }
+        }
+    }
+    
+    public func openAppIfNeeded(_ name: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        Task() {
+            do {
+                let currentAppInfo = try await getAppAndVersion()
+                if currentAppInfo.name != name {
+                    if currentAppInfo.name == "BOLOS" {
+                        try await openApp(name)
+                        completion(.success(()))
+                    } else {
+                        try await closeApp()
+                        try await openApp(name)
+                        completion(.success(()))
+                    }
+                } else {
+                    completion(.success(()))
+                }
+            } catch {
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    public func closeApp(success: @escaping EmptyResponse, failure: @escaping ErrorResponse) {
+        let apdu = APDU(data: [0xb0, 0xa7, 0x00, 0x00])
+        BleTransport.shared.exchange(apdu: apdu) { [weak self] result in
+            guard let self = self else { failure(BleTransportError.lowerLevelError(description: "closeApp -> self is nil")); return }
+            guard let disconnectedCallback = self.disconnectedCallback else { failure(BleTransportError.lowerLevelError(description: "closeApp -> disconnectedCallback is nil")); return }
+            
+            switch result {
+            case .success(_):
+                self.notifyDisconnected {
+                    self.create(timeout: self.timeout, disconnectedCallback: disconnectedCallback) { _ in
+                        success()
+                    } failure: { error in
+                        failure(error)
+                    }
+                }
+            case .failure(let error):
+                failure(error)
+            }
+        }
+    }
+    
+    
     // MARK: - Private methods
     
-    /// Updates the current list of peripherals matching them with their service.
+    /// Updates the current list of devices matching them with their service.
     ///
     /// - Parameter discoveries: All the current devices.
     /// - Returns: A boolean indicating whether the last changed since the last update.
     @discardableResult
-    fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
-        var auxPeripherals = [PeripheralInfoTuple]()
+    fileprivate func updateDevicesServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
+        var auxDevices = [DeviceInfoTuple]()
         for discovery in discoveries {
-            let peripheral = discovery.peripheralIdentifier
+            let device = DeviceIdentifier(peripheralIdentifier: discovery.peripheralIdentifier)
             if let services = discovery.advertisementPacket["kCBAdvDataServiceUUIDs"] as? [CBUUID], let firstService = services.first {
-                auxPeripherals.append((peripheral: peripheral, rssi: discovery.rssi, serviceUUID: firstService, canWriteWithoutResponse: nil))
+                auxDevices.append((device: device, rssi: discovery.rssi, serviceUUID: firstService, canWriteWithoutResponse: nil))
             }
         }
         
-        let somethingChanged = auxPeripherals.map({ $0.peripheral }) != peripheralsServicesTuple.map({ $0.peripheral })
+        let somethingChanged = auxDevices.map({ $0.device }) != devicesServicesTuple.map({ $0.device })
         
-        peripheralsServicesTuple = auxPeripherals
+        devicesServicesTuple = auxDevices
         
         return somethingChanged
     }
     
-    fileprivate func scanAndDiscoverBeforeConnecting(lookingFor: PeripheralIdentifier, connectFunction: @escaping ()->(), failure: @escaping BleErrorResponse) {
+    fileprivate func scanAndDiscoverBeforeConnecting(lookingFor: DeviceIdentifier, connectFunction: @escaping ()->(), failure: @escaping BleErrorResponse) {
         let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
             self.stopScanning()
-            failure(.connectError(description: "Couldn't find peripheral when scanning, timed out"))
+            failure(.connectError(description: "Couldn't find device when scanning, timed out"))
         }
         
         scan { [weak self] discoveries in
-            if discoveries.contains(where: { $0.peripheral == lookingFor }) {
+            if discoveries.contains(where: { $0.device == lookingFor }) {
                 timer.invalidate()
                 connectFunction()
                 self?.stopScanning()
             }
         } stopped: { error in
             if let error = error {
-                failure(.connectError(description: "Couldn't find peripheral when scanning because of error: \(error.description())"))
+                failure(.connectError(description: "Couldn't find device when scanning because of error: \(error.description())"))
             }
         }
 
@@ -421,9 +475,9 @@ public enum BleTransportError: Error {
     }
     
     fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping BleErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { failure(.listenError(description: "Not connected")); return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching peripheralService")); return }
-        self.bluejay.listen(to: peripheralService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
+        guard let connectedDevice = connectedDevice else { failure(.listenError(description: "Not connected")); return }
+        guard let deviceService = configuration.services.first(where: { configService in devicesServicesTuple.first(where: { $0.device.uuid == connectedDevice.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching deviceService")); return }
+        self.bluejay.listen(to: deviceService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
             switch result {
             case .success(let apdu):
                 apduReceived(apdu)
@@ -453,17 +507,64 @@ public enum BleTransportError: Error {
                 APDU.mtuSize = Int(fifthByte)
             }
         }
-        if let connectedPeripheral = connectedPeripheral {
-            mtuWaitingForCallback?(connectedPeripheral)
+        if let connectedDevice = connectedDevice {
+            mtuWaitingForCallback?(connectedDevice)
         }
     }
     
     fileprivate func clearConnection() {
-        connectedPeripheral = nil
+        connectedDevice = nil
         isExchanging = false
         notifyDisconnectedCompletion?()
         notifyDisconnectedCompletion = nil /// We call `notifyDisconnectedCompletion` only once since it's used to be notified about the next disconnection not all of them
         disconnectedCallback?()
+    }
+    
+    fileprivate func openApp(_ name: String, success: @escaping EmptyResponse, failure: @escaping ErrorResponse) {
+        let errorCodes: [BleStatusError: [String]] = [.userRejected: ["6985", "5501"], .appNotAvailableInDevice: ["6984", "6807"]]
+        let nameData = Data(name.utf8)
+        var data: [UInt8] = [0xe0, 0xd8, 0x00, 0x00]
+        data.append(UInt8(nameData.count))
+        data.append(contentsOf: nameData)
+        let apdu = APDU(data: data)
+        BleTransport.shared.exchange(apdu: apdu) { [weak self] result in
+            guard let self = self else { failure(BleTransportError.lowerLevelError(description: "closeApp -> self is nil")); return }
+            guard let disconnectedCallback = self.disconnectedCallback else { failure(BleTransportError.lowerLevelError(description: "closeApp -> disconnectedCallback is nil")); return }
+            
+            switch result {
+            case .success(let response):
+                if let error = self.parseStatus(response: response, errorCodes: errorCodes) {
+                    failure(error)
+                } else {
+                    self.notifyDisconnected {
+                        self.create(timeout: self.timeout, disconnectedCallback: disconnectedCallback) { _ in
+                            success()
+                        } failure: { error in
+                            failure(error)
+                        }
+                    }
+                }
+            case .failure(let error):
+                failure(error)
+            }
+        }
+    }
+    
+    fileprivate func parseStatus(response: String, errorCodes: [BleStatusError: [String]]) -> BleStatusError? {
+        let status = response.suffix(4)
+        if status.count == 4 {
+            if status == "9000" {
+                return nil
+            } else {
+                if let error = errorCodes.first(where: { $0.value.contains(String(status)) })?.key {
+                    return error
+                } else {
+                    return .unknown
+                }
+            }
+        } else {
+            return .noStatus
+        }
     }
 }
 
@@ -489,6 +590,82 @@ extension BleTransport: DisconnectHandler {
 extension BleTransport: LogObserver {
     public func debug(_ text: String) {
         
+    }
+}
+
+/// Async implementations
+extension BleTransport {
+    public func exchange(apdu apduToSend: APDU) async throws -> String {
+        return try await withCheckedThrowingContinuation { continuation in
+            exchange(apdu: apduToSend) { result in
+                switch result {
+                case .success(let response):
+                    continuation.resume(returning: response)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    public func send(apdu: APDU) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            send(apdu: apdu) {
+                continuation.resume()
+            } failure: { error in
+                continuation.resume(throwing: error)
+            }
+            
+        }
+    }
+    public func disconnect(immediate: Bool) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            disconnect(immediate: immediate) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    public func getAppAndVersion() async throws -> AppInfo {
+        return try await withCheckedThrowingContinuation { continuation in
+            self.getAppAndVersion { response in
+                continuation.resume(returning: response)
+            } failure: { error in
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+    public func openAppIfNeeded(_ name: String) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            openAppIfNeeded(name) { result in
+                switch result {
+                case .success(_):
+                    continuation.resume()
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    public func closeApp() async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            closeApp() {
+                continuation.resume()
+            } failure: { error in
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+    fileprivate func openApp(_ name: String) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            openApp(name) {
+                continuation.resume()
+            } failure: { error in
+                continuation.resume(throwing: error)
+            }
+        }
     }
 }
 
