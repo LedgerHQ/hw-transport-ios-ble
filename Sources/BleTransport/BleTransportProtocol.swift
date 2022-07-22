@@ -97,9 +97,6 @@ public protocol BleTransportProtocol {
     
     func openAppIfNeeded(_ name: String, completion: @escaping (Result<Void, Error>) -> Void)
     func openAppIfNeeded(_ name: String) async throws
-    
-    func closeApp(success: @escaping EmptyResponse, failure: @escaping ErrorResponse)
-    func closeApp() async throws
 }
 
 public struct AppInfo {

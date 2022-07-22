@@ -348,27 +348,6 @@ public enum BleStatusError: Error {
         }
     }
     
-    public func closeApp(success: @escaping EmptyResponse, failure: @escaping ErrorResponse) {
-        let apdu = APDU(data: [0xb0, 0xa7, 0x00, 0x00])
-        BleTransport.shared.exchange(apdu: apdu) { [weak self] result in
-            guard let self = self else { failure(BleTransportError.lowerLevelError(description: "closeApp -> self is nil")); return }
-            guard let disconnectedCallback = self.disconnectedCallback else { failure(BleTransportError.lowerLevelError(description: "closeApp -> disconnectedCallback is nil")); return }
-            
-            switch result {
-            case .success(_):
-                self.notifyDisconnected {
-                    self.create(timeout: self.timeout, disconnectedCallback: disconnectedCallback) { _ in
-                        success()
-                    } failure: { error in
-                        failure(error)
-                    }
-                }
-            case .failure(let error):
-                failure(error)
-            }
-        }
-    }
-    
     
     // MARK: - Private methods
     
@@ -555,6 +534,28 @@ public enum BleStatusError: Error {
         }
     }
     
+    /// Never call this method directly since some apps (like Bitcoin) will hang the execution if `getAppAndVersion` is not called right before
+    fileprivate func closeApp(success: @escaping EmptyResponse, failure: @escaping ErrorResponse) {
+        let apdu = APDU(data: [0xb0, 0xa7, 0x00, 0x00])
+        BleTransport.shared.exchange(apdu: apdu) { [weak self] result in
+            guard let self = self else { failure(BleTransportError.lowerLevelError(description: "closeApp -> self is nil")); return }
+            guard let disconnectedCallback = self.disconnectedCallback else { failure(BleTransportError.lowerLevelError(description: "closeApp -> disconnectedCallback is nil")); return }
+            
+            switch result {
+            case .success(_):
+                self.notifyDisconnected {
+                    self.create(timeout: self.timeout, disconnectedCallback: disconnectedCallback) { _ in
+                        success()
+                    } failure: { error in
+                        failure(error)
+                    }
+                }
+            case .failure(let error):
+                failure(error)
+            }
+        }
+    }
+    
     fileprivate func parseStatus(response: String, errorCodes: [BleStatusError: [String]]) -> BleStatusError? {
         let status = response.suffix(4)
         if status.count == 4 {
@@ -654,18 +655,18 @@ extension BleTransport {
             }
         }
     }
-    public func closeApp() async throws {
+    fileprivate func openApp(_ name: String) async throws {
         return try await withCheckedThrowingContinuation { continuation in
-            closeApp() {
+            openApp(name) {
                 continuation.resume()
             } failure: { error in
                 continuation.resume(throwing: error)
             }
         }
     }
-    fileprivate func openApp(_ name: String) async throws {
+    fileprivate func closeApp() async throws {
         return try await withCheckedThrowingContinuation { continuation in
-            openApp(name) {
+            closeApp() {
                 continuation.resume()
             } failure: { error in
                 continuation.resume(throwing: error)
