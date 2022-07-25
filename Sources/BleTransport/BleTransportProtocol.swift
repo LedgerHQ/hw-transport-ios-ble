@@ -49,6 +49,7 @@ public protocol BleTransportProtocol {
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
     func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
+    @discardableResult func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse) async throws -> DeviceIdentifier
     
     
     // MARK: - Messaging
