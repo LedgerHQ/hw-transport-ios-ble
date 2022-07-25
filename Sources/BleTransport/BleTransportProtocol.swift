@@ -30,7 +30,7 @@ public protocol BleTransportProtocol {
     /// Scan for reachable devices with the services provided.
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered devices changes.
-    func scan(callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
+    func scan(duration: TimeInterval, callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
     
     /// Stop scanning for reachable devices.
     ///
@@ -42,13 +42,13 @@ public protocol BleTransportProtocol {
     /// Attempt to connect to a given peripheral.
     ///
     /// - Parameter peripheral: The peripheral to connect to.
-    func connect(toDeviceID device: DeviceIdentifier, timeout: Timeout, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
+    func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
     
     /// Convenience method to `scan` for devices and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(timeout: Timeout, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
+    func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
     
     
     // MARK: - Messaging

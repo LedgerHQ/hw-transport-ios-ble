@@ -39,7 +39,7 @@ class ScanViewController: UIViewController {
         guard deviceConnecting == nil else { return }
         deviceConnecting = device
         
-        transport?.connect(toDeviceID: device, timeout: .seconds(5)) {
+        transport?.connect(toDeviceID: device) {
             print("Device disconnected!")
         } success: { [weak self] peripheralConnected in
             self?.connectedDevice = peripheralConnected
@@ -59,7 +59,7 @@ class ScanViewController: UIViewController {
     @IBAction func findDevicesButtonTapped(_ sender: Any) {
         if let transport = transport, transport.isBluetoothAvailable {
             self.scanningStateChanged(isScanning: true)
-            transport.scan { [weak self] discoveries in
+            transport.scan(duration: 5.0) { [weak self] discoveries in
                 self?.devicesServicesTuple = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
                 self?.devicesTableView.reloadData()

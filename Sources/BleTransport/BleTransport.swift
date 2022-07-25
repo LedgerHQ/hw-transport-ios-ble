@@ -10,7 +10,7 @@ import Bluejay
 import CoreBluetooth
 
 /// Errors thrown when scanning/sending/receiving/connecting
-public enum BleTransportError: Error {
+public enum BleTransportError: LocalizedError {
     case pendingActionOnDevice
     case userRefusedOnDevice
     case connectError(description: String)
@@ -46,7 +46,7 @@ public enum BleTransportError: Error {
 }
 
 /// Errors received as `status` sent in a message from a device
-public enum BleStatusError: Error {
+public enum BleStatusError: LocalizedError {
     case userRejected
     case appNotAvailableInDevice
     case noStatus
@@ -65,7 +65,7 @@ public enum BleStatusError: Error {
     private var disconnectedCallback: EmptyResponse? /// Once `disconnectCallback` is set it never becomes `nil` again so we can reuse it in methods where we reconnect to the device blindly like `openApp/closeApp`
     private var connectFailure: ((BleTransportError)->())?
     
-    private var timeout: Timeout = .seconds(5) /// `timeout` will be overriden every time a value gets passed to `connect/create`
+    private var scanDuration: TimeInterval = 5.0 /// `scanDuration` will be overriden every time a value gets passed to `scan/create`
     
     private var devicesServicesTuple = [DeviceInfoTuple]()
     private var connectedDevice: DeviceIdentifier?
@@ -113,7 +113,7 @@ public enum BleStatusError: Error {
     
     // MARK: - Public Methods
     
-    public func scan(callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse) {
+    public func scan(duration: TimeInterval, callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse) {
         DispatchQueue.main.async {
             if self.bluejay.isScanning {
                 self.bluejay.stopScanning()
@@ -125,7 +125,7 @@ public enum BleStatusError: Error {
             
             self.devicesServicesTuple = [] /// We clean `devicesServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to devices
             
-            self.bluejay.scan(allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
+            self.bluejay.scan(duration: duration, allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
                 guard let self = self else { return .continue }
                 if self.updateDevicesServicesTuple(discoveries: discoveries) {
                     callback(self.devicesServicesTuple)
@@ -157,18 +157,18 @@ public enum BleStatusError: Error {
         }
     }
     
-    public func create(timeout: Timeout, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
-        self.timeout = timeout
+    public func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
+        self.scanDuration = scanDuration
         
         var connecting = false
         
         func attemptConnecting(deviceInfo: DeviceInfoTuple) {
-            connect(toDeviceID: deviceInfo.device, timeout: timeout, disconnectedCallback: disconnectedCallback, success: { connectedDevice in
+            connect(toDeviceID: deviceInfo.device, disconnectedCallback: disconnectedCallback, success: { connectedDevice in
                 success(connectedDevice)
             }, failure: failure)
         }
         
-        self.scan { discoveries in
+        self.scan(duration: scanDuration) { discoveries in
             guard let firstDiscovery = discoveries.first else { return }
             if !connecting {
                 connecting = true
@@ -253,16 +253,14 @@ public enum BleStatusError: Error {
         }
     }
     
-    public func connect(toDeviceID device: DeviceIdentifier, timeout: Timeout, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
+    public func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
         if self.bluejay.isScanning {
             self.bluejay.stopScanning()
         }
         self.disconnectedCallback = disconnectedCallback
         
-        self.timeout = timeout
-        
         let connect = {
-            self.bluejay.connect(device.toPeripheralIdentifier(), timeout: timeout, warningOptions: nil) { [weak self] result in
+            self.bluejay.connect(device.toPeripheralIdentifier(), timeout: .seconds(5), warningOptions: nil) { [weak self] result in
                 switch result {
                 case .success(let peripheralIdentifier):
                     self?.connectedDevice = DeviceIdentifier(peripheralIdentifier: peripheralIdentifier)
@@ -378,7 +376,7 @@ public enum BleStatusError: Error {
             failure(.connectError(description: "Couldn't find device when scanning, timed out"))
         }
         
-        scan { [weak self] discoveries in
+        scan(duration: scanDuration) { [weak self] discoveries in
             if discoveries.contains(where: { $0.device == lookingFor }) {
                 timer.invalidate()
                 connectFunction()
@@ -521,7 +519,7 @@ public enum BleStatusError: Error {
                     failure(error)
                 } else {
                     self.notifyDisconnected {
-                        self.create(timeout: self.timeout, disconnectedCallback: disconnectedCallback) { _ in
+                        self.create(scanDuration: self.scanDuration, disconnectedCallback: disconnectedCallback) { _ in
                             success()
                         } failure: { error in
                             failure(error)
@@ -544,7 +542,7 @@ public enum BleStatusError: Error {
             switch result {
             case .success(_):
                 self.notifyDisconnected {
-                    self.create(timeout: self.timeout, disconnectedCallback: disconnectedCallback) { _ in
+                    self.create(scanDuration: self.scanDuration, disconnectedCallback: disconnectedCallback) { _ in
                         success()
                     } failure: { error in
                         failure(error)
@@ -601,6 +599,17 @@ extension BleTransport: LogObserver {
 
 /// Async implementations
 extension BleTransport {
+    @discardableResult
+    public func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse) async throws -> DeviceIdentifier {
+        return try await withCheckedThrowingContinuation { continuation in
+            create(scanDuration: scanDuration, disconnectedCallback: disconnectedCallback) { response in
+                continuation.resume(returning: response)
+            } failure: { error in
+                continuation.resume(throwing: error)
+            }
+
+        }
+    }
     public func exchange(apdu apduToSend: APDU) async throws -> String {
         return try await withCheckedThrowingContinuation { continuation in
             exchange(apdu: apduToSend) { result in
