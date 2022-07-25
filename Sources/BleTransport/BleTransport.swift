@@ -601,11 +601,23 @@ extension BleTransport: LogObserver {
 extension BleTransport {
     @discardableResult
     public func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse) async throws -> DeviceIdentifier {
+        let lock = NSLock()
         return try await withCheckedThrowingContinuation { continuation in
+            
+            // https://forums.swift.org/t/how-to-prevent-swift-task-continuation-misuse/57581
+            var nillableContinuation: CheckedContinuation<DeviceIdentifier, Error>? = continuation
+            
             create(scanDuration: scanDuration, disconnectedCallback: disconnectedCallback) { response in
-                continuation.resume(returning: response)
+                lock.lock()
+                defer { lock.unlock() }
+                nillableContinuation?.resume(returning: response)
+                nillableContinuation = nil
             } failure: { error in
-                continuation.resume(throwing: error)
+                lock.lock()
+                defer { lock.unlock() }
+                
+                nillableContinuation?.resume(throwing: error)
+                nillableContinuation = nil
             }
 
         }
