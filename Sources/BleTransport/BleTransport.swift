@@ -13,6 +13,7 @@ import CoreBluetooth
 public enum BleTransportError: LocalizedError {
     case pendingActionOnDevice
     case userRefusedOnDevice
+    case scanningTimedOut
     case connectError(description: String)
     case writeError(description: String)
     case readError(description: String)
@@ -27,6 +28,8 @@ public enum BleTransportError: LocalizedError {
             return "Pending action on device"
         case .userRefusedOnDevice:
             return "User refused on device"
+        case .scanningTimedOut:
+            return "Scanning timed out"
         case .connectError(let description):
             return "Connect error: \(description)"
         case .writeError(let description):
@@ -177,6 +180,8 @@ public enum BleStatusError: LocalizedError {
         } stopped: { error in
             if let error = error {
                 failure(error)
+            } else {
+                failure(.scanningTimedOut)
             }
         }
     }
