@@ -22,7 +22,7 @@ public enum BleTransportError: LocalizedError {
     case pairingError(description: String)
     case lowerLevelError(description: String)
     
-    public func description() -> String {
+    public var errorDescription: String? {
         switch self {
         case .pendingActionOnDevice:
             return "Pending action on device"
@@ -49,13 +49,30 @@ public enum BleTransportError: LocalizedError {
 }
 
 /// Errors received as `status` sent in a message from a device
-public enum BleStatusError: LocalizedError {
+public enum BleStatusError: LocalizedError, Hashable {
     case userRejected
     case appNotAvailableInDevice
     case noStatus
     case formatNotSupported
     case couldNotParseResponseData
-    case unknown
+    case unknown(status: String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .userRejected:
+            return "User rejected action"
+        case .appNotAvailableInDevice:
+            return "App is not available in device"
+        case .noStatus:
+            return "No status received from device"
+        case .formatNotSupported:
+            return "Format is not supported"
+        case .couldNotParseResponseData:
+            return "Could not parse response data"
+        case .unknown(let status):
+            return "Unknown error. Status received: \(status)"
+        }
+    }
 }
 
 @objc public class BleTransport: NSObject, BleTransportProtocol {
@@ -140,12 +157,14 @@ public enum BleStatusError: LocalizedError {
                     callback(self.devicesServicesTuple)
                 }
                 return .continue
-            }, stopped: { [weak self] discoveries, error in
+            }, stopped: { [weak self] discoveries, error, timedOut in
                 guard let self = self else { return }
                 self.updateDevicesServicesTuple(discoveries: discoveries)
                 if let error = error {
                     print("Stopped scanning with error: \(error)")
                     stopped(.scanError(description: error.localizedDescription))
+                } else if timedOut {
+                    stopped(.scanningTimedOut)
                 } else {
                     stopped(nil)
                 }
@@ -180,8 +199,6 @@ public enum BleStatusError: LocalizedError {
         } stopped: { error in
             if let error = error {
                 failure(error)
-            } else {
-                failure(.scanningTimedOut)
             }
         }
     }
@@ -389,7 +406,7 @@ public enum BleStatusError: LocalizedError {
             }
         } stopped: { error in
             if let error = error {
-                failure(.connectError(description: "Couldn't find device when scanning because of error: \(error.description())"))
+                failure(.connectError(description: "Couldn't find device when scanning because of error: \(error.localizedDescription)"))
             }
         }
 
@@ -407,7 +424,7 @@ public enum BleStatusError: LocalizedError {
             }
         } failure: { error in
             self.isExchanging = false
-            self.exchangeCallback?(.failure(.writeError(description: error.description())))
+            self.exchangeCallback?(.failure(.writeError(description: error.localizedDescription)))
         }
         
     }
@@ -482,7 +499,7 @@ public enum BleStatusError: LocalizedError {
         send(value: Data([0x08,0x00,0x00,0x00,0x00])) {
             
         } failure: { error in
-            print("Error infering MTU: \(error.description())")
+            print("Error infering MTU: \(error.localizedDescription)")
         }
 
 
@@ -560,15 +577,15 @@ public enum BleStatusError: LocalizedError {
     }
     
     fileprivate func parseStatus(response: String, errorCodes: [BleStatusError: [String]]) -> BleStatusError? {
-        let status = response.suffix(4)
+        let status = String(response.suffix(4))
         if status.count == 4 {
             if status == "9000" {
                 return nil
             } else {
-                if let error = errorCodes.first(where: { $0.value.contains(String(status)) })?.key {
+                if let error = errorCodes.first(where: { $0.value.contains(status) })?.key {
                     return error
                 } else {
-                    return .unknown
+                    return .unknown(status: status)
                 }
             }
         } else {
