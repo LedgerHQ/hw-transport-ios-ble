@@ -73,6 +73,23 @@ public enum BleStatusError: LocalizedError, Hashable {
             return "No status received from device"
         }
     }
+    
+    public func status() -> String? {
+        switch self {
+        case .userRejected(let status):
+            return status
+        case .appNotAvailableInDevice(let status):
+            return status
+        case .formatNotSupported(let status):
+            return status
+        case .couldNotParseResponseData(let status):
+            return status
+        case .unknown(let status):
+            return status
+        case .noStatus:
+            return nil
+        }
+    }
 }
 
 @objc public class BleTransport: NSObject, BleTransportProtocol {
