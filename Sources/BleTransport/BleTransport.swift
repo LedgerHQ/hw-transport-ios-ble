@@ -50,27 +50,27 @@ public enum BleTransportError: LocalizedError {
 
 /// Errors received as `status` sent in a message from a device
 public enum BleStatusError: LocalizedError, Hashable {
-    case userRejected
-    case appNotAvailableInDevice
-    case noStatus
-    case formatNotSupported
-    case couldNotParseResponseData
+    case userRejected(status: String)
+    case appNotAvailableInDevice(status: String)
+    case formatNotSupported(status: String)
+    case couldNotParseResponseData(status: String)
     case unknown(status: String)
+    case noStatus
     
     public var errorDescription: String? {
         switch self {
-        case .userRejected:
+        case .userRejected(_):
             return "User rejected action"
-        case .appNotAvailableInDevice:
+        case .appNotAvailableInDevice(_):
             return "App is not available in device"
-        case .noStatus:
-            return "No status received from device"
-        case .formatNotSupported:
+        case .formatNotSupported(_):
             return "Format is not supported"
-        case .couldNotParseResponseData:
+        case .couldNotParseResponseData(_):
             return "Could not parse response data"
         case .unknown(let status):
             return "Unknown error. Status received: \(status)"
+        case .noStatus:
+            return "No status received from device"
         }
     }
 }
@@ -325,7 +325,7 @@ public enum BleStatusError: LocalizedError, Hashable {
                 var i = 0
                 let format = data[i]
                 if format != 1 {
-                    failure(BleStatusError.formatNotSupported)
+                    failure(BleTransportError.lowerLevelError(description: "Format is not supported"))
                     return
                 }
                 i += 1
@@ -337,8 +337,8 @@ public enum BleStatusError: LocalizedError, Hashable {
                 i += 1
                 let versionData = data[i..<i+Int(versionLength)]
                 i += versionLength
-                guard let name = String(data: Data(nameData), encoding: .ascii) else { failure(BleStatusError.couldNotParseResponseData); return }
-                guard let version = String(data: Data(versionData), encoding: .ascii) else { failure(BleStatusError.couldNotParseResponseData); return }
+                guard let name = String(data: Data(nameData), encoding: .ascii) else { failure(BleTransportError.lowerLevelError(description: "Could not parse response data")); return }
+                guard let version = String(data: Data(versionData), encoding: .ascii) else { failure(BleTransportError.lowerLevelError(description: "Could not parse response data")); return }
                 success(AppInfo(name: name, version: version))
             case .failure(let error):
                 failure(error)
@@ -525,7 +525,7 @@ public enum BleStatusError: LocalizedError, Hashable {
     }
     
     fileprivate func openApp(_ name: String, success: @escaping EmptyResponse, failure: @escaping ErrorResponse) {
-        let errorCodes: [BleStatusError: [String]] = [.userRejected: ["6985", "5501"], .appNotAvailableInDevice: ["6984", "6807"]]
+        let errorCodes: [BleStatusError: [String]] = [.userRejected(status: ""): ["6985", "5501"], .appNotAvailableInDevice(status: ""): ["6984", "6807"]]
         let nameData = Data(name.utf8)
         var data: [UInt8] = [0xe0, 0xd8, 0x00, 0x00]
         data.append(UInt8(nameData.count))
@@ -583,7 +583,21 @@ public enum BleStatusError: LocalizedError, Hashable {
                 return nil
             } else {
                 if let error = errorCodes.first(where: { $0.value.contains(status) })?.key {
-                    return error
+                    /// `error` here is a BleStatusError which we used to group the status codes that match the associated value `status` it has is empty because we didn't know the appropriate status then so we re-generate it here
+                    switch error {
+                    case .userRejected(_):
+                        return .userRejected(status: status)
+                    case .appNotAvailableInDevice(_):
+                        return .appNotAvailableInDevice(status: status)
+                    case .formatNotSupported(_):
+                        return .formatNotSupported(status: status)
+                    case .couldNotParseResponseData(_):
+                        return .couldNotParseResponseData(status: status)
+                    case .unknown(_):
+                        return .unknown(status: status)
+                    case .noStatus:
+                        return .noStatus
+                    }
                 } else {
                     return .unknown(status: status)
                 }
