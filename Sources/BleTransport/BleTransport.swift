@@ -29,7 +29,8 @@ public enum BleTransportError: LocalizedError {
         case .userRefusedOnDevice:
             return "User refused on device"
         case .scanningTimedOut:
-            return "Scanning timed out"
+            /// https://github.com/LedgerHQ/ledger-live/blob/acdd59af6dcfcda1d136ccbfc8fdf49311485a32/libs/ledgerjs/packages/hw-transport/src/Transport.ts#L261
+            return "No Ledger device found (timeout)"
         case .connectError(let description):
             return "Connect error: \(description)"
         case .writeError(let description):
@@ -44,6 +45,33 @@ public enum BleTransportError: LocalizedError {
             return "Pairing error: \(description)"
         case .lowerLevelError(let description):
             return "Lower level error: \(description)"
+        }
+    }
+    
+    /// `id` is defined by what the JS bindings are returning and using for error handling
+    public var id: String? {
+        switch self {
+        case .pendingActionOnDevice:
+            return nil
+        case .userRefusedOnDevice:
+            return nil
+        case .scanningTimedOut:
+            /// https://github.com/LedgerHQ/ledger-live/blob/acdd59af6dcfcda1d136ccbfc8fdf49311485a32/libs/ledgerjs/packages/hw-transport/src/Transport.ts#L261
+            return "ListenTimeout"
+        case .connectError(_):
+            return nil
+        case .writeError(_):
+            return nil
+        case .readError(_):
+            return nil
+        case .listenError(_):
+            return nil
+        case .scanError(_):
+            return nil
+        case .pairingError(_):
+            return nil
+        case .lowerLevelError(_):
+            return nil
         }
     }
 }
@@ -74,7 +102,7 @@ public enum BleStatusError: LocalizedError, Hashable {
         }
     }
     
-    public func status() -> String? {
+    public var status: String? {
         switch self {
         case .userRejected(let status):
             return status
@@ -196,7 +224,7 @@ public enum BleStatusError: LocalizedError, Hashable {
         }
     }
     
-    public func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
+    public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
         self.scanDuration = scanDuration
         
         var connecting = false
@@ -653,7 +681,7 @@ extension BleTransport: LogObserver {
 /// Async implementations
 extension BleTransport {
     @discardableResult
-    public func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse) async throws -> DeviceIdentifier {
+    public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> DeviceIdentifier {
         let lock = NSLock()
         return try await withCheckedThrowingContinuation { continuation in
             
@@ -673,6 +701,29 @@ extension BleTransport {
                 nillableContinuation = nil
             }
 
+        }
+    }
+    @discardableResult
+    public func connect(toDeviceID: DeviceIdentifier, disconnectedCallback: EmptyResponse?) async throws -> DeviceIdentifier {
+        let lock = NSLock()
+        return try await withCheckedThrowingContinuation { continuation in
+            
+            // https://forums.swift.org/t/how-to-prevent-swift-task-continuation-misuse/57581
+            var nillableContinuation: CheckedContinuation<DeviceIdentifier, Error>? = continuation
+            
+            connect(toDeviceID: toDeviceID, disconnectedCallback: disconnectedCallback) { response in
+                lock.lock()
+                defer { lock.unlock() }
+                nillableContinuation?.resume(returning: response)
+                nillableContinuation = nil
+            } failure: { error in
+                lock.lock()
+                defer { lock.unlock() }
+                
+                nillableContinuation?.resume(throwing: error)
+                nillableContinuation = nil
+            }
+            
         }
     }
     public func exchange(apdu apduToSend: APDU) async throws -> String {

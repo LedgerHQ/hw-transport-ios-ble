@@ -43,13 +43,14 @@ public protocol BleTransportProtocol {
     ///
     /// - Parameter peripheral: The peripheral to connect to.
     func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
+    @discardableResult func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: EmptyResponse?) async throws -> DeviceIdentifier
     
     /// Convenience method to `scan` for devices and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
-    @discardableResult func create(scanDuration: TimeInterval, disconnectedCallback: @escaping EmptyResponse) async throws -> DeviceIdentifier
+    func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
+    @discardableResult func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> DeviceIdentifier
     
     
     // MARK: - Messaging
