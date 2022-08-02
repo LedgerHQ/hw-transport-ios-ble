@@ -120,11 +120,19 @@ public enum BleStatusError: LocalizedError, Hashable {
     }
 }
 
+extension BleTransport: BleModuleDelegate {
+    func bluetoothAvailable(_ available: Bool) {
+        print("AVAILABLE: \(available)")
+    }
+}
+
 @objc public class BleTransport: NSObject, BleTransportProtocol {
     
     public static var shared: BleTransportProtocol = BleTransport(configuration: nil, debugMode: false)
     
     private let bluejay: Bluejay
+    
+    private let bleModule: BleModule
     
     private let configuration: BleTransportConfiguration
     private var disconnectedCallback: EmptyResponse? /// Once `disconnectCallback` is set it never becomes `nil` again so we can reuse it in methods where we reconnect to the device blindly like `openApp/closeApp`
@@ -148,7 +156,7 @@ public enum BleStatusError: LocalizedError, Hashable {
     
     @objc
     public var isBluetoothAvailable: Bool {
-        bluejay.isBluetoothAvailable
+        bleModule.isBluetoothAvailable
     }
     
     @objc
@@ -160,6 +168,7 @@ public enum BleStatusError: LocalizedError, Hashable {
     
     private init(configuration: BleTransportConfiguration?, debugMode: Bool) {
         self.bluejay = Bluejay()
+        self.bleModule = BleModule()
         self.configuration = configuration ?? BleTransportConfiguration.defaultConfig()
         
         super.init()
@@ -171,26 +180,27 @@ public enum BleStatusError: LocalizedError, Hashable {
         if !debugMode {
             self.bluejay.register(logObserver: self)
         }
-        self.bluejay.register(connectionObserver: self)
-        self.bluejay.registerDisconnectHandler(handler: self)
-        self.bluejay.start()
+        //self.bluejay.register(connectionObserver: self)
+        //self.bluejay.registerDisconnectHandler(handler: self)
+        self.bleModule.start(delegate: self)
+        //self.bluejay.start()
     }
     
     // MARK: - Public Methods
     
     public func scan(duration: TimeInterval, callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse) {
         DispatchQueue.main.async {
-            if self.bluejay.isScanning {
+            /*if self.bluejay.isScanning {
                 self.bluejay.stopScanning()
             }
             
             if self.bluejay.isConnected {
                 self.bluejay.disconnect()
-            }
+            }*/
             
             self.devicesServicesTuple = [] /// We clean `devicesServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to devices
             
-            self.bluejay.scan(duration: duration, allowDuplicates: true, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
+            self.bleModule.scan(duration: duration, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
                 guard let self = self else { return .continue }
                 if self.updateDevicesServicesTuple(discoveries: discoveries) {
                     callback(self.devicesServicesTuple)
@@ -220,7 +230,8 @@ public enum BleStatusError: LocalizedError, Hashable {
     @objc
     public func stopScanning() {
         DispatchQueue.main.async {
-            self.bluejay.stopScanning()
+            //self.bluejay.stopScanning()
+            self.bleModule.stopScanning()
         }
     }
     
@@ -287,7 +298,7 @@ public enum BleStatusError: LocalizedError, Hashable {
             writeCharacteristic = retryWithResponse ? deviceService.writeWithResponse : deviceService.writeWithoutResponse
             type = retryWithResponse ? .withResponse : .withoutResponse
         }
-        self.bluejay.write(to: writeCharacteristic, value: value, type: type) { [weak self] result in
+        /*self.bluejay.write(to: writeCharacteristic, value: value, type: type) { [weak self] result in
             guard let self = self else { failure(.writeError(description: "Self got deallocated")); return }
             switch result {
             case .success:
@@ -305,7 +316,7 @@ public enum BleStatusError: LocalizedError, Hashable {
                     failure(.writeError(description: error.localizedDescription))
                 }
             }
-        }
+        }*/
     }
     
     public func disconnect(immediate: Bool, completion: OptionalBleErrorResponse?) {
@@ -321,13 +332,13 @@ public enum BleStatusError: LocalizedError, Hashable {
     }
     
     public func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
-        if self.bluejay.isScanning {
-            self.bluejay.stopScanning()
-        }
+        //if self.bluejay.isScanning {
+            self.stopScanning()
+        //}
         self.disconnectedCallback = disconnectedCallback
         
         let connect = {
-            self.bluejay.connect(device.toPeripheralIdentifier(), timeout: .seconds(5), warningOptions: nil) { [weak self] result in
+            /*self.bluejay.connect(device.toPeripheralIdentifier(), timeout: .seconds(5), warningOptions: nil) { [weak self] result in
                 switch result {
                 case .success(let peripheralIdentifier):
                     self?.connectedDevice = DeviceIdentifier(peripheralIdentifier: peripheralIdentifier)
@@ -338,7 +349,7 @@ public enum BleStatusError: LocalizedError, Hashable {
                 case .failure(let error):
                     failure(.connectError(description: error.localizedDescription))
                 }
-            }
+            }*/
         }
         
         if !devicesServicesTuple.contains(where: { $0.device == device }) {
@@ -526,7 +537,7 @@ public enum BleStatusError: LocalizedError, Hashable {
     fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping BleErrorResponse) {
         guard let connectedDevice = connectedDevice else { failure(.listenError(description: "Not connected")); return }
         guard let deviceService = configuration.services.first(where: { configService in devicesServicesTuple.first(where: { $0.device.uuid == connectedDevice.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching deviceService")); return }
-        self.bluejay.listen(to: deviceService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
+        /*self.bluejay.listen(to: deviceService.notify, multipleListenOption: .replaceable) { (result: ReadResult<APDU>) in
             switch result {
             case .success(let apdu):
                 apduReceived(apdu)
@@ -537,7 +548,7 @@ public enum BleStatusError: LocalizedError, Hashable {
                     failure(.listenError(description: error.localizedDescription))
                 }
             }
-        }
+        }*/
     }
     
     fileprivate func inferMTU() {
@@ -653,7 +664,7 @@ public enum BleStatusError: LocalizedError, Hashable {
     }
 }
 
-extension BleTransport: ConnectionObserver {
+/*extension BleTransport: ConnectionObserver {
     public func disconnected(from peripheral: PeripheralIdentifier) {
         clearConnection()
     }
@@ -664,13 +675,13 @@ extension BleTransport: ConnectionObserver {
             clearConnection()
         }
     }
-}
+}*/
 
-extension BleTransport: DisconnectHandler {
+/*extension BleTransport: DisconnectHandler {
     public func didDisconnect(from peripheral: PeripheralIdentifier, with error: Error?, willReconnect autoReconnect: Bool) -> AutoReconnectMode {
         return .change(shouldAutoReconnect: false)
     }
-}
+}*/
 
 extension BleTransport: LogObserver {
     public func debug(_ text: String) {
