@@ -92,6 +92,8 @@ public class Scan: Operation {
     }
     
     func discoveredPeripheral(cbPeripheral: CBPeripheral, advertisementData: [String: Any], rssi: NSNumber) {
+        clearTimeoutTimer()
+        
         let peripheralIdentifier = PeripheralIdentifier(uuid: cbPeripheral.identifier, name: cbPeripheral.name)
         
         let newDiscovery = ScanDiscovery(peripheralIdentifier: peripheralIdentifier, advertisementPacket: advertisementData, rssi: rssi.intValue)

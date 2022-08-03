@@ -286,7 +286,7 @@ extension BleTransport: BleModuleDelegate {
     ///   - success: The success callback
     ///   - failure: The failue callback
     fileprivate func send<S: Sendable>(value: S, retryWithResponse: Bool = false, success: @escaping EmptyResponse, failure: @escaping BleErrorResponse) {
-        guard self.bluejay.isConnected, let connectedDevice = connectedDevice else { failure(.writeError(description: "Not connected")); return }
+        guard let connectedDevice = connectedDevice else { failure(.writeError(description: "Not connected")); return }
         guard let connectedDeviceTuple = devicesServicesTuple.first(where: { $0.device.uuid == connectedDevice.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "devicesServiceTuple doesn't contain conencted device UUID"))); return }
         guard let deviceService = configuration.services.first(where: { configService in connectedDeviceTuple.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No matching deviceService")); return }
         let writeCharacteristic: CharacteristicIdentifier
@@ -298,7 +298,7 @@ extension BleTransport: BleModuleDelegate {
             writeCharacteristic = retryWithResponse ? deviceService.writeWithResponse : deviceService.writeWithoutResponse
             type = retryWithResponse ? .withResponse : .withoutResponse
         }
-        /*self.bluejay.write(to: writeCharacteristic, value: value, type: type) { [weak self] result in
+        self.bleModule.write(to: writeCharacteristic, value: value, type: type) { [weak self] result in
             guard let self = self else { failure(.writeError(description: "Self got deallocated")); return }
             switch result {
             case .success:
@@ -316,7 +316,7 @@ extension BleTransport: BleModuleDelegate {
                     failure(.writeError(description: error.localizedDescription))
                 }
             }
-        }*/
+        }
     }
     
     public func disconnect(immediate: Bool, completion: OptionalBleErrorResponse?) {
@@ -350,6 +350,19 @@ extension BleTransport: BleModuleDelegate {
                     failure(.connectError(description: error.localizedDescription))
                 }
             }*/
+            self.bleModule.connect(peripheralIdentifier: device.toPeripheralIdentifier(), timeout: .seconds(5)) { [weak self ] result in
+                switch result {
+                case .success(let peripheral):
+                    let peripheralIdentifier = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
+                    self?.connectedDevice = DeviceIdentifier(peripheralIdentifier: peripheralIdentifier)
+                    self?.connectFailure = failure
+                    self?.startListening()
+                    self?.mtuWaitingForCallback = success
+                    self?.inferMTU()
+                case .failure(let error):
+                    failure(.connectError(description: error.localizedDescription))
+                }
+            }
         }
         
         if !devicesServicesTuple.contains(where: { $0.device == device }) {
@@ -552,7 +565,8 @@ extension BleTransport: BleModuleDelegate {
     }
     
     fileprivate func inferMTU() {
-        send(value: Data([0x08,0x00,0x00,0x00,0x00])) {
+        let apduToSend = APDU(data: [0x08,0x00,0x00,0x00,0x00])
+        send(value: apduToSend) {
             
         } failure: { error in
             print("Error infering MTU: \(error.localizedDescription)")
