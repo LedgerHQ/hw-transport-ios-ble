@@ -34,6 +34,10 @@ class DiscoverCharacteristic: Operation {
     private var characteristicIdentifier: CharacteristicIdentifier
     private var callback: ((DiscoveryResult) -> Void)?
     
+    deinit {
+        print("Deinited DiscoverCharacteristic")
+    }
+    
     init(characteristicIdentifier: CharacteristicIdentifier, peripheral: CBPeripheral, callback: @escaping (DiscoveryResult) -> Void) {
         self.characteristicIdentifier = characteristicIdentifier
         self.peripheral = peripheral

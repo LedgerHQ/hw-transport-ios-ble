@@ -28,6 +28,10 @@ class DiscoverService: Operation {
     private var serviceIdentifier: ServiceIdentifier
     private var callback: ((DiscoveryResult) -> Void)?
     
+    deinit {
+        print("Deinited DiscoverService")
+    }
+    
     init(serviceIdentifier: ServiceIdentifier, peripheral: CBPeripheral, callback: @escaping (DiscoveryResult) -> Void) {
         self.serviceIdentifier = serviceIdentifier
         self.peripheral = peripheral

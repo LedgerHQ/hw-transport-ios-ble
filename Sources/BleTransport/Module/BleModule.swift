@@ -39,9 +39,7 @@ public class BleModule: NSObject {
     
     private var currentOperation: Operation?
     
-    private var connectedPeripheral: CBPeripheral?
-    
-    //private var nextOperationsQueue = [Operation]()
+    private var connectedPeripheral: Peripheral?
     
     public var isBluetoothAvailable: Bool {
         if cbCentralManager == nil {
@@ -89,11 +87,12 @@ extension BleModule {
 // MARK: - Connect
 extension BleModule {
     public func connect(peripheralIdentifier: PeripheralIdentifier, timeout: Timeout, callback: @escaping (ConnectionResult) -> Void) {
-        let connectOperation = Connect(peripheralIdentifier: peripheralIdentifier, manager: cbCentralManager, timeout: timeout, callback: { result in
-            if case .success(let peripheral) = result {
-                self.connectedPeripheral = peripheral
-                callback(result)
+        let connectOperation = Connect(peripheralIdentifier: peripheralIdentifier, manager: cbCentralManager, timeout: timeout, callback: { [weak self] result in
+            guard let self = self else { callback(.failure(BleModuleError.selfIsNil)); return }
+            if case .success(let cbPeripheral) = result {
+                self.connectedPeripheral = Peripheral(delegate: self, cbPeripheral: cbPeripheral)
             }
+            callback(result)
         })
         startOperation(connectOperation)
     }
@@ -107,29 +106,16 @@ extension BleModule {
         type: CBCharacteristicWriteType = .withResponse,
         completion: @escaping (WriteResult) -> Void) {
             if let peripheral = connectedPeripheral {
-                
-                let writeOperation = Write(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral, value: value, type: type, callback: completion)
-                
-                let discoverService = DiscoverService(serviceIdentifier: characteristicIdentifier.service, peripheral: peripheral) { [weak self] result in
-                    guard let self = self else { completion(.failure(BleModuleError.selfIsNil)); return }
-                    switch result {
-                    case .success:
-                        let discoverCharacteristic = DiscoverCharacteristic(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral) { result in
-                            switch result {
-                            case .success:
-                                self.startOperation(writeOperation)
-                            case .failure(let error):
-                                completion(.failure(error))
-                                return
-                            }
-                        }
-                        self.startOperation(discoverCharacteristic)
-                    case .failure(let error):
+                Task() {
+                    do {
+                        try await peripheral.discoverService(characteristicIdentifier.service)
+                        try await peripheral.discoverCharacteristic(characteristicIdentifier)
+                        let writeOperation = Write(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: value, type: type, callback: completion)
+                        self.startOperation(writeOperation)
+                    } catch {
                         completion(.failure(error))
-                        return
                     }
                 }
-                startOperation(discoverService)
             } else {
                 print("Cannot request write on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
                 completion(.failure(BleModuleError.notConnected))
@@ -174,6 +160,18 @@ extension BleModule: CBCentralManagerDelegate {
         (currentOperation as? Connect)?.didDisconnectPeripheral()
         clearAfterDisconnect()
     }
+}
+
+extension BleModule: PeripheralDelegate {
+    func requestStartOperation(_ operation: Operation) {
+        startOperation(operation)
+    }
     
+    func didDiscoverServices() {
+        (currentOperation as? DiscoverService)?.didDiscoverServices()
+    }
     
+    func didDiscoverCharacteristics() {
+        (currentOperation as? DiscoverCharacteristic)?.didDiscoverCharacteristics()
+    }
 }

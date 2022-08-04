@@ -135,8 +135,6 @@ public class Scan: Operation {
         }
         
         stopped(discoveries, error, timedOut)
-        
-        finished?()
     }
     
     private func clearTimeoutTimer() {
