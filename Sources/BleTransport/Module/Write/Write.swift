@@ -22,7 +22,7 @@ class Write<T: Sendable>: Operation {
     var value: T
     
     // Type of write
-    var type: CBCharacteristicWriteType
+    var writeType: CBCharacteristicWriteType
     
     /// Callback for the write attempt.
     private var callback: ((WriteResult) -> Void)?
@@ -31,11 +31,11 @@ class Write<T: Sendable>: Operation {
         print("Deinited Write")
     }
     
-    init(characteristicIdentifier: CharacteristicIdentifier, peripheral: CBPeripheral, value: T, type: CBCharacteristicWriteType = .withResponse, callback: @escaping (WriteResult) -> Void) {
+    init(characteristicIdentifier: CharacteristicIdentifier, peripheral: CBPeripheral, value: T, writeType: CBCharacteristicWriteType = .withResponse, callback: @escaping (WriteResult) -> Void) {
         self.characteristicIdentifier = characteristicIdentifier
         self.peripheral = peripheral
         self.value = value
-        self.type = type
+        self.writeType = writeType
         self.callback = callback
     }
     
@@ -48,17 +48,17 @@ class Write<T: Sendable>: Operation {
             return
         }
         
-        let property: CBCharacteristicProperties = type == .withoutResponse ? .writeWithoutResponse : .write
+        let property: CBCharacteristicProperties = writeType == .withoutResponse ? .writeWithoutResponse : .write
         guard characteristic.properties.contains(property) else {
             complete(withError: DiscoverCharacteristicError.missingCharacteristicProperty(property))
             return
         }
         
-        peripheral.writeValue(value.toBluetoothData(), for: characteristic, type: type)
+        peripheral.writeValue(value.toBluetoothData(), for: characteristic, type: writeType)
         
         print("Started write to \(characteristicIdentifier.description) on \(peripheral.identifier).")
         
-        if type == .withoutResponse {
+        if writeType == .withoutResponse {
             didWriteValue(toCharacteristic: characteristic)
         }
     }

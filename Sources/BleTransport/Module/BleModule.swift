@@ -26,7 +26,7 @@ protocol BleModuleDelegate {
     func bluetoothAvailable(_ available: Bool)
 }
 
-protocol Operation {
+protocol Operation: AnyObject {
     var finished: EmptyResponse? { get set }
     
     func start()
@@ -37,9 +37,11 @@ public class BleModule: NSObject {
     
     private var delegate: BleModuleDelegate!
     
-    private var currentOperation: Operation?
+    private var operationsQueue = Queue()
     
     private var connectedPeripheral: Peripheral?
+    
+    private var listeners: [CharacteristicIdentifier: (ReadResult<Data?>) -> Void?] = [:]
     
     public var isBluetoothAvailable: Bool {
         if cbCentralManager == nil {
@@ -54,12 +56,21 @@ public class BleModule: NSObject {
         self.cbCentralManager = CBCentralManager(delegate: self, queue: nil)
     }
     
-    private func startOperation(_ operation: Operation) {
+    /*private func startOperation(_ operation: Operation) {
         self.currentOperation = operation
-        self.currentOperation?.finished = { [weak self] in
+        /*self.currentOperation?.finished = { [weak self] in
             self?.currentOperation = nil
-        }
+        }*/
         self.currentOperation?.start()
+    }*/
+    private func addOperation(_ operation: Operation) {
+        operation.finished = { [weak self] in
+            if let first = self?.operationsQueue.first, first === operation {
+                operation.finished = nil
+                self?.operationsQueue.next()
+            }
+        }
+        operationsQueue.add(operation)
     }
     
     private func clearAfterDisconnect() {
@@ -76,11 +87,11 @@ extension BleModule {
               expired: ((ScanDiscovery, [ScanDiscovery]) -> ScanAction)? = nil,
               stopped: @escaping ([ScanDiscovery], Error?, Bool) -> Void) {
         let scanOperation = Scan(duration: duration, throttleRSSIDelta: throttleRSSIDelta, serviceIdentifiers: serviceIdentifiers, discovery: discovery, expired: expired, stopped: stopped, manager: cbCentralManager)
-        startOperation(scanOperation)
+        addOperation(scanOperation)
     }
     
     func stopScanning() {
-        (currentOperation as? Scan)?.stopScanning()
+        operationsQueue.operationsOfType(Scan.self).first?.stopScanning()
     }
 }
 
@@ -94,7 +105,7 @@ extension BleModule {
             }
             callback(result)
         })
-        startOperation(connectOperation)
+        addOperation(connectOperation)
     }
 }
 
@@ -108,16 +119,56 @@ extension BleModule {
             if let peripheral = connectedPeripheral {
                 Task() {
                     do {
-                        try await peripheral.discoverService(characteristicIdentifier.service)
-                        try await peripheral.discoverCharacteristic(characteristicIdentifier)
-                        let writeOperation = Write(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: value, type: type, callback: completion)
-                        self.startOperation(writeOperation)
+                        try await peripheral.prepareForCharacteristic(characteristicIdentifier)
+                        let writeOperation = Write(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: value, writeType: type, callback: completion)
+                        self.addOperation(writeOperation)
                     } catch {
                         completion(.failure(error))
                     }
                 }
             } else {
                 print("Cannot request write on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
+                completion(.failure(BleModuleError.notConnected))
+            }
+        }
+}
+
+// MARK: - Listen
+extension BleModule {
+    public func listen<R: Receivable>(
+        to characteristicIdentifier: CharacteristicIdentifier,
+        completion: @escaping (ReadResult<R>) -> Void) {
+            /*if let peripheral = connectedPeripheral {
+                peripheral.listen(to: characteristicIdentifier, multipleListenOption: option, completion: completion)
+            } else {
+                print("Cannot request listen on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
+                completion(.failure(BleModuleError.notConnected))
+            }*/
+            
+            if let peripheral = connectedPeripheral {
+                print("Requesting listen on \(characteristicIdentifier.description)...")
+                
+                Task() {
+                    do {
+                        try await peripheral.prepareForCharacteristic(characteristicIdentifier)
+                        
+                        let listenOperation = Listen(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: true) { [weak self] result in
+                            guard let self = self else { completion(.failure(BleModuleError.selfIsNil)); return }
+                            
+                            switch result {
+                            case .success:
+                                self.listeners[characteristicIdentifier] = ({ dataResult in
+                                    completion(ReadResult<R>(dataResult: dataResult))
+                                })
+                            case .failure(let error):
+                                completion(.failure(error))
+                            }
+                        }
+                        addOperation(listenOperation)
+                    }
+                }
+            } else {
+                print("Cannot request listen on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
                 completion(.failure(BleModuleError.notConnected))
             }
         }
@@ -139,17 +190,20 @@ extension BleModule: CBCentralManagerDelegate {
     }
     
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        if let scan = currentOperation as? Scan {
+        /*if let scan = currentOperation as? Scan {
             scan.discoveredPeripheral(cbPeripheral: peripheral, advertisementData: advertisementData, rssi: RSSI)
-        }
+        }*/
+        operationsQueue.operationsOfType(Scan.self).first?.discoveredPeripheral(cbPeripheral: peripheral, advertisementData: advertisementData, rssi: RSSI)
     }
     
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        (currentOperation as? Connect)?.didConnectPeripheral()
+        operationsQueue.operationsOfType(Connect.self).first?.didConnectPeripheral()
+        //(currentOperation as? Connect)?.didConnectPeripheral()
     }
     
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        (currentOperation as? Connect)?.didDisconnectPeripheral()
+        operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral()
+        //(currentOperation as? Connect)?.didDisconnectPeripheral()
         clearAfterDisconnect()
     }
     
@@ -157,21 +211,46 @@ extension BleModule: CBCentralManagerDelegate {
      This mostly happens when either the Bluetooth device or the Core Bluetooth stack somehow only partially completes the negotiation of a connection. For simplicity we treat this as a disconnection event, so we can perform all the same clean up logic.
      */
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        (currentOperation as? Connect)?.didDisconnectPeripheral()
+        operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral()
+        //(currentOperation as? Connect)?.didDisconnectPeripheral()
         clearAfterDisconnect()
     }
 }
 
 extension BleModule: PeripheralDelegate {
     func requestStartOperation(_ operation: Operation) {
-        startOperation(operation)
+        addOperation(operation)
     }
     
     func didDiscoverServices() {
-        (currentOperation as? DiscoverService)?.didDiscoverServices()
+        print("didDiscoverServices")
+        operationsQueue.operationsOfType(DiscoverService.self).first?.didDiscoverServices()
+        //(currentOperation as? DiscoverService)?.didDiscoverServices()
     }
     
     func didDiscoverCharacteristics() {
-        (currentOperation as? DiscoverCharacteristic)?.didDiscoverCharacteristics()
+        operationsQueue.operationsOfType(DiscoverCharacteristic.self).first?.didDiscoverCharacteristics()
+        //(currentOperation as? DiscoverCharacteristic)?.didDiscoverCharacteristics()
+    }
+    
+    func didUpdateCharacteristicNotificationState() {
+        operationsQueue.operationsOfType(Listen.self).forEach({
+            $0.didUpdateCharacteristicNotificationState()
+        })
+        //(currentOperation as? Listen)?.didUpdateCharacteristicNotificationState()
+    }
+    
+    func didUpdateValueFor(characteristic: CBCharacteristic, error: Error?) {
+        guard let characteristicIdentifier = CharacteristicIdentifier(characteristic) else {
+            print("Received value update for characteristic (\(characteristic.uuid.uuidString) without a valid service. Update will be ignored")
+            return
+        }
+        
+        guard let listenCallback = listeners[characteristicIdentifier] else { return }
+        if let error = error {
+            listenCallback(.failure(error))
+        } else {
+            listenCallback(.success(characteristic.value))
+        }
     }
 }

@@ -13,6 +13,8 @@ public class Peripheral: NSObject {
     private(set) weak var delegate: PeripheralDelegate!
     private(set) var cbPeripheral: CBPeripheral!
     
+    private var listeners: [CharacteristicIdentifier: (ReadResult<Data?>) -> Void?] = [:]
+    
     init(delegate: PeripheralDelegate, cbPeripheral: CBPeripheral) {
         self.delegate = delegate
         self.cbPeripheral = cbPeripheral
@@ -34,7 +36,12 @@ public class Peripheral: NSObject {
         return PeripheralIdentifier(uuid: cbPeripheral.identifier, name: cbPeripheral.name)
     }
     
-    public func discoverService(_ serviceIdentifier: ServiceIdentifier) async throws {
+    public func prepareForCharacteristic(_ characteristicIdentifier: CharacteristicIdentifier) async throws {
+        try await discoverService(characteristicIdentifier.service)
+        try await discoverCharacteristic(characteristicIdentifier)
+    }
+    
+    private func discoverService(_ serviceIdentifier: ServiceIdentifier) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             discoverService(serviceIdentifier) { result in
                 switch result {
@@ -47,7 +54,7 @@ public class Peripheral: NSObject {
         }
     }
     
-    public func discoverCharacteristic(_ characteristicIdentifier: CharacteristicIdentifier) async throws {
+    private func discoverCharacteristic(_ characteristicIdentifier: CharacteristicIdentifier) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             discoverCharacteristic(characteristicIdentifier) { result in
                 switch result {
@@ -86,6 +93,37 @@ public class Peripheral: NSObject {
         }
         self.delegate.requestStartOperation(discoverCharacteristic)
     }
+    
+    public func isListening(to characteristicIdentifier: CharacteristicIdentifier) -> Bool {
+        return listeners.keys.contains(characteristicIdentifier)
+    }
+    
+    public func listen<R: Receivable>(
+        to characteristicIdentifier: CharacteristicIdentifier,
+        completion: @escaping (ReadResult<R>) -> Void) {
+            
+            print("Requesting listen on \(characteristicIdentifier.description)...")
+            
+            Task() {
+                do {
+                    try await prepareForCharacteristic(characteristicIdentifier)
+                    
+                    let listenOperation = Listen(characteristicIdentifier: characteristicIdentifier, peripheral: cbPeripheral, value: true) { [weak self] result in
+                        guard let self = self else { completion(.failure(BleModuleError.selfIsNil)); return }
+                        
+                        switch result {
+                        case .success:
+                            self.listeners[characteristicIdentifier] = ({ dataResult in
+                                completion(ReadResult<R>(dataResult: dataResult))
+                            })
+                        case .failure(let error):
+                            completion(.failure(error))
+                        }
+                    }
+                    delegate.requestStartOperation(listenOperation)
+                }
+            }
+        }
 }
 
 extension Peripheral: CBPeripheralDelegate {
@@ -106,4 +144,15 @@ extension Peripheral: CBPeripheralDelegate {
     /*public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         handle(event: .didWriteCharacteristic(characteristic), error: error as NSError?)
     }*/
+    
+    /// Captures CoreBluetooth's did turn on or off notification/listening on a characteristic event and pass it to Bluejay's queue for processing.
+    public func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+        //handle(event: .didUpdateCharacteristicNotificationState(characteristic), error: error as NSError?)
+        delegate.didUpdateCharacteristicNotificationState()
+    }
+    
+    public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        //print("LISTENERS: \(listeners)")
+        delegate.didUpdateValueFor(characteristic: characteristic, error: error)
+    }
 }

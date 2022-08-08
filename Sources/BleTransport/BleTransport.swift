@@ -562,6 +562,18 @@ extension BleTransport: BleModuleDelegate {
                 }
             }
         }*/
+        self.bleModule.listen(to: deviceService.notify) { (result: ReadResult<APDU>) in
+            switch result {
+            case .success(let apdu):
+                apduReceived(apdu)
+            case .failure(let error):
+                if (error as NSError).code == CBATTError.insufficientEncryption.rawValue {
+                    failure(.pairingError(description: error.localizedDescription))
+                } else {
+                    failure(.listenError(description: error.localizedDescription))
+                }
+            }
+        }
     }
     
     fileprivate func inferMTU() {
