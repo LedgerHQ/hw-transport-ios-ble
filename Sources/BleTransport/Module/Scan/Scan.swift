@@ -40,7 +40,7 @@ public class Scan: Operation {
     private var discoveries = [ScanDiscovery]()
     
     deinit {
-        print("Deinited Scan")
+        //print("Deinited Scan")
     }
     
     init(duration: TimeInterval,
@@ -128,12 +128,16 @@ public class Scan: Operation {
             manager.stopScan()
         }
         
-        if let error = error {
+        /*if let error = error {
             print("Scanning stopped with error: \(error.localizedDescription)")
         } else {
             print("Scanning stopped.")
-        }
+        }*/
         
+        complete(discoveries, error, timedOut)
+    }
+    
+    func complete(_ discoveries: [ScanDiscovery], _ error: Error?, _ timedOut: Bool) {
         stopped(discoveries, error, timedOut)
         finished?()
     }
@@ -146,7 +150,7 @@ public class Scan: Operation {
     @objc func timeoutTimerAction(_ timer: Timer) {
         self.timeoutTimer = nil
         
-        print("Finished scanning on timeout.")
+        //print("Finished scanning on timeout.")
         
         stopScan(with: discoveries, error: nil, timedOut: true)
     }

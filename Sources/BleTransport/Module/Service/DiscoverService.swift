@@ -29,7 +29,7 @@ class DiscoverService: Operation {
     private var callback: ((DiscoveryResult) -> Void)?
     
     deinit {
-        print("Deinited DiscoverService")
+        //print("Deinited DiscoverService")
     }
     
     init(serviceIdentifier: ServiceIdentifier, peripheral: CBPeripheral, callback: @escaping (DiscoveryResult) -> Void) {
@@ -60,6 +60,7 @@ class DiscoverService: Operation {
         } else {
             callback?(.success)
         }
+        callback = nil
         finished?()
     }
 }

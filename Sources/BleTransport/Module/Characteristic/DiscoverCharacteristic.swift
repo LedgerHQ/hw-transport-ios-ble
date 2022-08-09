@@ -35,7 +35,7 @@ class DiscoverCharacteristic: Operation {
     private var callback: ((DiscoveryResult) -> Void)?
     
     deinit {
-        print("Deinited DiscoverCharacteristic")
+        //print("Deinited DiscoverCharacteristic")
     }
     
     init(characteristicIdentifier: CharacteristicIdentifier, peripheral: CBPeripheral, callback: @escaping (DiscoveryResult) -> Void) {
@@ -76,6 +76,7 @@ class DiscoverCharacteristic: Operation {
         } else {
             callback?(.success)
         }
+        callback = nil
         finished?()
     }
 }

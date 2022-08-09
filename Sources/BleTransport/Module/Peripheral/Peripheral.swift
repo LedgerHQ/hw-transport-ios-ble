@@ -102,7 +102,7 @@ public class Peripheral: NSObject {
         to characteristicIdentifier: CharacteristicIdentifier,
         completion: @escaping (ReadResult<R>) -> Void) {
             
-            print("Requesting listen on \(characteristicIdentifier.description)...")
+            //print("Requesting listen on \(characteristicIdentifier.description)...")
             
             Task() {
                 do {

@@ -28,7 +28,7 @@ class Write<T: Sendable>: Operation {
     private var callback: ((WriteResult) -> Void)?
     
     deinit {
-        print("Deinited Write")
+        //print("Deinited Write")
     }
     
     init(characteristicIdentifier: CharacteristicIdentifier, peripheral: CBPeripheral, value: T, writeType: CBCharacteristicWriteType = .withResponse, callback: @escaping (WriteResult) -> Void) {
@@ -56,7 +56,7 @@ class Write<T: Sendable>: Operation {
         
         peripheral.writeValue(value.toBluetoothData(), for: characteristic, type: writeType)
         
-        print("Started write to \(characteristicIdentifier.description) on \(peripheral.identifier).")
+        //print("Started write to \(characteristicIdentifier.description) on \(peripheral.identifier).")
         
         if writeType == .withoutResponse {
             didWriteValue(toCharacteristic: characteristic)
@@ -68,13 +68,13 @@ class Write<T: Sendable>: Operation {
             preconditionFailure("Expecting write to \(characteristicIdentifier.description), but actually wrote to \(toCharacteristic.uuid)")
         }
         
-        print("Write to \(characteristicIdentifier.description) on \(peripheral.identifier) is successful.")
+        //print("Write to \(characteristicIdentifier.description) on \(peripheral.identifier) is successful.")
         
         complete(withError: nil)
     }
     
     func didWriteError(_ error: Error) {
-        print("Failed writing to \(characteristicIdentifier.description) on \(peripheral.identifier) with error: \(error.localizedDescription)")
+        //print("Failed writing to \(characteristicIdentifier.description) on \(peripheral.identifier) with error: \(error.localizedDescription)")
         
         complete(withError: error)
     }
@@ -85,6 +85,7 @@ class Write<T: Sendable>: Operation {
         } else {
             callback?(.success)
         }
+        callback = nil
         finished?()
     }
 }

@@ -47,7 +47,7 @@ public class Connect: Operation {
     private let timeout: Timeout?
     
     deinit {
-        print("Deinited Connect")
+        //print("Deinited Connect")
     }
     
     init(peripheralIdentifier: PeripheralIdentifier, manager: CBCentralManager, timeout: Timeout, callback: @escaping (ConnectionResult) -> Void) {
@@ -74,12 +74,11 @@ public class Connect: Operation {
                 weakSelf.timedOut()
             }
         }
-        
-        print("Started connecting to \(peripheral.name ?? peripheral.identifier.uuidString).")
     }
     
     func complete(_ result: ConnectionResult) {
         callback?(result)
+        callback = nil
         finished?()
     }
     

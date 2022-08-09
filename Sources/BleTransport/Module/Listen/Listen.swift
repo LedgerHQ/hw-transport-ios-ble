@@ -28,7 +28,7 @@ class Listen: Operation {
     private var characteristic: CBCharacteristic?
     
     deinit {
-        print("Deinited Listen")
+        //print("Deinited Listen")
     }
     
     init(characteristicIdentifier: CharacteristicIdentifier, peripheral: CBPeripheral, value: Bool, callback: @escaping (WriteResult) -> Void) {
@@ -52,11 +52,11 @@ class Listen: Operation {
         
         self.characteristic = characteristic
         
-        if value {
+        /*if value {
             print("Will start listening to \(characteristicIdentifier.description) on \(peripheral.name ?? peripheral.identifier.uuidString).")
         } else {
             print("Will stop listening to \(characteristicIdentifier.description) on \(peripheral.name ?? peripheral.identifier.uuidString).")
-        }
+        }*/
     }
     
     func complete(withError error: Error?) {
@@ -65,16 +65,17 @@ class Listen: Operation {
         } else {
             callback?(.success)
         }
+        callback = nil
+        finished?()
     }
     
     func didUpdateCharacteristicNotificationState() {
-        if value {
+        /*if value {
             print("Listening to \(characteristicIdentifier.description) on \(peripheral.name ?? peripheral.identifier.uuidString).")
         } else {
             print("Stopped listening to \(characteristicIdentifier.description) on \(peripheral.name ?? peripheral.identifier.uuidString).")
-        }
+        }*/
         
-        callback?(.success)
-        finished?()
+        complete(withError: nil)
     }
 }

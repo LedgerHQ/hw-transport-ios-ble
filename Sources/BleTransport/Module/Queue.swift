@@ -41,4 +41,10 @@ class Queue {
     func operationsOfType<T: Operation>(_ operationType: T.Type) -> [T] {
         queue.filter({ type(of: $0) == operationType }) as! [T]
     }
+    
+    func removeAll() {
+        DispatchQueue.main.async {
+            self.queue.removeAll()
+        }
+    }
 }

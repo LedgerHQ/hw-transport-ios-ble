@@ -24,6 +24,7 @@ enum BleModuleError: LocalizedError {
 
 protocol BleModuleDelegate {
     func bluetoothAvailable(_ available: Bool)
+    func disconnected(from peripheral: PeripheralIdentifier)
 }
 
 protocol Operation: AnyObject {
@@ -56,13 +57,6 @@ public class BleModule: NSObject {
         self.cbCentralManager = CBCentralManager(delegate: self, queue: nil)
     }
     
-    /*private func startOperation(_ operation: Operation) {
-        self.currentOperation = operation
-        /*self.currentOperation?.finished = { [weak self] in
-            self?.currentOperation = nil
-        }*/
-        self.currentOperation?.start()
-    }*/
     private func addOperation(_ operation: Operation) {
         operation.finished = { [weak self] in
             if let first = self?.operationsQueue.first, first === operation {
@@ -73,8 +67,10 @@ public class BleModule: NSObject {
         operationsQueue.add(operation)
     }
     
-    private func clearAfterDisconnect() {
+    private func clearAfterDisconnect(from peripheral: PeripheralIdentifier) {
         self.connectedPeripheral = nil
+        delegate.disconnected(from: peripheral)
+        operationsQueue.removeAll()
     }
 }
 
@@ -138,15 +134,8 @@ extension BleModule {
     public func listen<R: Receivable>(
         to characteristicIdentifier: CharacteristicIdentifier,
         completion: @escaping (ReadResult<R>) -> Void) {
-            /*if let peripheral = connectedPeripheral {
-                peripheral.listen(to: characteristicIdentifier, multipleListenOption: option, completion: completion)
-            } else {
-                print("Cannot request listen on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
-                completion(.failure(BleModuleError.notConnected))
-            }*/
-            
             if let peripheral = connectedPeripheral {
-                print("Requesting listen on \(characteristicIdentifier.description)...")
+                //print("Requesting listen on \(characteristicIdentifier.description)...")
                 
                 Task() {
                     do {
@@ -174,6 +163,15 @@ extension BleModule {
         }
 }
 
+// MARK: - Disconnect
+extension BleModule {
+    public func disconnect(completion: ((DisconnectionResult) -> Void)? = nil) {
+        guard let connectedPeripheral = connectedPeripheral else { completion?(.failure(BleModuleError.notConnected)); return }
+        let disconnectOperation = Disconnect(peripheral: connectedPeripheral.cbPeripheral, manager: cbCentralManager, callback: completion)
+        addOperation(disconnectOperation)
+    }
+}
+
 extension BleModule: CBCentralManagerDelegate {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         delegate.bluetoothAvailable(central.state == .poweredOn)
@@ -190,21 +188,18 @@ extension BleModule: CBCentralManagerDelegate {
     }
     
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        /*if let scan = currentOperation as? Scan {
-            scan.discoveredPeripheral(cbPeripheral: peripheral, advertisementData: advertisementData, rssi: RSSI)
-        }*/
         operationsQueue.operationsOfType(Scan.self).first?.discoveredPeripheral(cbPeripheral: peripheral, advertisementData: advertisementData, rssi: RSSI)
     }
     
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         operationsQueue.operationsOfType(Connect.self).first?.didConnectPeripheral()
-        //(currentOperation as? Connect)?.didConnectPeripheral()
     }
     
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        let peripheralIdentifier = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
         operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral()
-        //(currentOperation as? Connect)?.didDisconnectPeripheral()
-        clearAfterDisconnect()
+        operationsQueue.operationsOfType(Disconnect.self).first?.didDisconnectPeripheral(peripheral: peripheralIdentifier)
+        clearAfterDisconnect(from: peripheralIdentifier)
     }
     
     /**
@@ -212,8 +207,7 @@ extension BleModule: CBCentralManagerDelegate {
      */
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral()
-        //(currentOperation as? Connect)?.didDisconnectPeripheral()
-        clearAfterDisconnect()
+        clearAfterDisconnect(from: PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name))
     }
 }
 
@@ -223,21 +217,17 @@ extension BleModule: PeripheralDelegate {
     }
     
     func didDiscoverServices() {
-        print("didDiscoverServices")
         operationsQueue.operationsOfType(DiscoverService.self).first?.didDiscoverServices()
-        //(currentOperation as? DiscoverService)?.didDiscoverServices()
     }
     
     func didDiscoverCharacteristics() {
         operationsQueue.operationsOfType(DiscoverCharacteristic.self).first?.didDiscoverCharacteristics()
-        //(currentOperation as? DiscoverCharacteristic)?.didDiscoverCharacteristics()
     }
     
     func didUpdateCharacteristicNotificationState() {
         operationsQueue.operationsOfType(Listen.self).forEach({
             $0.didUpdateCharacteristicNotificationState()
         })
-        //(currentOperation as? Listen)?.didUpdateCharacteristicNotificationState()
     }
     
     func didUpdateValueFor(characteristic: CBCharacteristic, error: Error?) {
