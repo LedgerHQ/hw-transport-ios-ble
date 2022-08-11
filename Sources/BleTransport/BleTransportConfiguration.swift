@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Bluejay
 
 @objc
 public class BleTransportConfiguration: NSObject {

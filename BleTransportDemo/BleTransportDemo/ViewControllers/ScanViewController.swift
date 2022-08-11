@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Bluejay
 import BleTransport
 import CoreBluetooth
 

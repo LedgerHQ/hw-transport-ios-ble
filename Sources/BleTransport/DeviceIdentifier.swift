@@ -6,30 +6,29 @@
 //
 
 import Foundation
-import Bluejay
 
 @objc
 public class DeviceIdentifier: NSObject {
     public let uuid: UUID
     public let name: String
     
-    init(uuid: UUID, name: String?) {
+    public init(uuid: UUID, name: String?) {
         self.uuid = uuid
         self.name = name ?? "No Name"
     }
     
-    init(peripheralIdentifier: PeripheralIdentifier) {
+    public init(peripheralIdentifier: PeripheralIdentifier) {
         self.uuid = peripheralIdentifier.uuid
         self.name = peripheralIdentifier.name
     }
     
-    func toPeripheralIdentifier() -> PeripheralIdentifier {
+    public func toPeripheralIdentifier() -> PeripheralIdentifier {
         return PeripheralIdentifier(uuid: self.uuid, name: self.name)
     }
 }
 
 extension DeviceIdentifier {
-    static func ==(lhs: DeviceIdentifier, rhs: DeviceIdentifier) -> Bool {
+    static public func ==(lhs: DeviceIdentifier, rhs: DeviceIdentifier) -> Bool {
         return lhs.uuid == rhs.uuid
     }
 }

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Bluejay
 
 public class APDU: Sendable, Receivable {
     

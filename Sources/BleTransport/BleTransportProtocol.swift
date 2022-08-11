@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Bluejay
 import CoreBluetooth
 
 public typealias DeviceInfoTuple = (device: DeviceIdentifier, rssi: Int, serviceUUID: CBUUID, canWriteWithoutResponse: Bool?)

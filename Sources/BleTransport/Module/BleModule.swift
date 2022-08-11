@@ -244,3 +244,15 @@ extension BleModule: PeripheralDelegate {
         }
     }
 }
+
+extension CBPeripheral {
+    public func service(with uuid: CBUUID) -> CBService? {
+        return services?.first { $0.uuid == uuid }
+    }
+}
+
+extension CBService {
+    public func characteristic(with uuid: CBUUID) -> CBCharacteristic? {
+        return characteristics?.first { $0.uuid == uuid }
+    }
+}
