@@ -8,9 +8,9 @@
 import Foundation
 import CoreBluetooth
 
-public typealias DeviceInfoTuple = (device: DeviceIdentifier, rssi: Int, serviceUUID: CBUUID, canWriteWithoutResponse: Bool?)
-public typealias DeviceResponse = ((DeviceIdentifier)->())
-public typealias DevicesWithServicesResponse = (([DeviceInfoTuple])->())
+public typealias PeripheralInfoTuple = (peripheral: PeripheralIdentifier, rssi: Int, serviceUUID: CBUUID, canWriteWithoutResponse: Bool?)
+public typealias PeripheralResponse = ((PeripheralIdentifier)->())
+public typealias PeripheralsWithServicesResponse = (([PeripheralInfoTuple])->())
 public typealias APDUResponse = ((APDU)->())
 public typealias EmptyResponse = (()->())
 public typealias BleErrorResponse = ((BleTransportError)->())
@@ -26,12 +26,12 @@ public protocol BleTransportProtocol {
     
     // MARK: - Scan
     
-    /// Scan for reachable devices with the services provided.
+    /// Scan for reachable peripherals with the services provided.
     ///
-    /// - Parameter callback: Called each time the peripheral list of discovered devices changes.
-    func scan(duration: TimeInterval, callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
+    /// - Parameter callback: Called each time the peripheral list of discovered peripherals changes.
+    func scan(duration: TimeInterval, callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
     
-    /// Stop scanning for reachable devices.
+    /// Stop scanning for reachable peripherals.
     ///
     func stopScanning()
     
@@ -41,20 +41,20 @@ public protocol BleTransportProtocol {
     /// Attempt to connect to a given peripheral.
     ///
     /// - Parameter peripheral: The peripheral to connect to.
-    func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
-    @discardableResult func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: EmptyResponse?) async throws -> DeviceIdentifier
+    func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse)
+    @discardableResult func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier
     
-    /// Convenience method to `scan` for devices and connecting to the first discovered one.
+    /// Convenience method to `scan` for peripherals and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
     ///   - failure: Callback called when the connection failed.
-    func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse)
-    @discardableResult func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> DeviceIdentifier
+    func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse)
+    @discardableResult func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier
     
     
     // MARK: - Messaging
     
-    /// Send an `APDU` and wait for the response from the device.
+    /// Send an `APDU` and wait for the response from the peripheral.
     /// - Parameters:
     ///   - apduToSend: `APDU` to send.
     ///   - callback: Callback that contains the result of the exchange.
@@ -72,10 +72,10 @@ public protocol BleTransportProtocol {
     
     // MARK: - Disconnect
     
-    /// Disconnect from the passed device.
+    /// Disconnect from the passed peripheral.
     /// - Parameters:
     ///   - immediate: Whether the disconnection should be queued or executed immediately. Passing `false` will wait until the current tasks have been completed.
-    ///   - completion: Callback called when the device disconnection has failed with an error or disconnected successfully (`error == nil`).
+    ///   - completion: Callback called when the peripheral disconnection has failed with an error or disconnected successfully (`error == nil`).
     func disconnect(immediate: Bool, completion: OptionalBleErrorResponse?)
     func disconnect(immediate: Bool) async throws
     
@@ -86,8 +86,8 @@ public protocol BleTransportProtocol {
     /// - Parameter completion: Callback called when bluetooth becomes available (or immediately if was already available)
     func bluetoothAvailabilityCallback(completion: @escaping ((_ availability: Bool)->()))
     
-    /// Get notified once when the device disconnects
-    /// - Parameter completion: Callback called when the device disconnects. This will be called only once.
+    /// Get notified once when the peripheral disconnects
+    /// - Parameter completion: Callback called when the peripheral disconnects. This will be called only once.
     func notifyDisconnected(completion: @escaping EmptyResponse)
     
     

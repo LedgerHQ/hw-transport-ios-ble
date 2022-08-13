@@ -15,11 +15,11 @@ class ConnectedViewController: UIViewController {
     @IBOutlet weak var progressView: UIProgressView!
     
     var transport: BleTransportProtocol?
-    var connectedDevice: DeviceIdentifier?
+    var connectedDevice: PeripheralIdentifier?
     
     var appInstaller: AppInstaller?
     
-    var disconnectTapped: ((DeviceIdentifier)->())?
+    var disconnectTapped: ((PeripheralIdentifier)->())?
     
     override func viewDidLoad() {
         super.viewDidLoad()

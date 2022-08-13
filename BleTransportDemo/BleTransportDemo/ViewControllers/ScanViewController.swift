@@ -16,9 +16,9 @@ class ScanViewController: UIViewController {
     @IBOutlet weak var infoLabel: UILabel!
     @IBOutlet weak var devicesFoundLabel: UILabel!
     
-    var devicesServicesTuple = [DeviceInfoTuple]()
-    var deviceConnecting: DeviceIdentifier?
-    var connectedDevice: DeviceIdentifier?
+    var peripheralsServicesTuple = [PeripheralInfoTuple]()
+    var peripheralConnecting: PeripheralIdentifier?
+    var connectedPeripheral: PeripheralIdentifier?
     
     let configuration = BleTransportConfiguration(services: [BleService(serviceUUID: "13D63400-2C97-0004-0000-4C6564676572",
                                                                         notifyUUID: "13d63400-2c97-0004-0001-4c6564676572",
@@ -34,23 +34,23 @@ class ScanViewController: UIViewController {
         transport = BleTransport.shared
     }
     
-    fileprivate func connectToDevice(_ device: DeviceIdentifier) {
-        guard deviceConnecting == nil else { return }
-        deviceConnecting = device
+    fileprivate func connectToPeripheral(_ peripheral: PeripheralIdentifier) {
+        guard peripheralConnecting == nil else { return }
+        peripheralConnecting = peripheral
         
-        transport?.connect(toDeviceID: device) {
+        transport?.connect(toPeripheralID: peripheral) {
             print("Device disconnected!")
         } success: { [weak self] peripheralConnected in
-            self?.connectedDevice = peripheralConnected
+            self?.connectedPeripheral = peripheralConnected
             self?.performSegue(withIdentifier: "connectedDeviceSegue", sender: nil)
-            self?.deviceConnecting = nil
+            self?.peripheralConnecting = nil
         } failure: { [weak self] error in
             let alert = UIAlertController(title: "Error connecting", message: "\(error)", preferredStyle: .alert)
             let okAction = UIAlertAction(title: "Ok", style: .cancel)
             alert.addAction(okAction)
             self?.present(alert, animated: true, completion: nil)
             
-            self?.deviceConnecting = nil
+            self?.peripheralConnecting = nil
         }
 
     }
@@ -59,13 +59,13 @@ class ScanViewController: UIViewController {
         if let transport = transport, transport.isBluetoothAvailable {
             self.scanningStateChanged(isScanning: true)
             transport.scan(duration: 5.0) { [weak self] discoveries in
-                self?.devicesServicesTuple = discoveries
+                self?.peripheralsServicesTuple = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
                 self?.devicesTableView.reloadData()
             } stopped: { [weak self] error in
                 self?.scanningStateChanged(isScanning: false)
                 self?.devicesFoundLabel.alpha = 0.0
-                self?.devicesServicesTuple = []
+                self?.peripheralsServicesTuple = []
                 self?.devicesTableView.reloadData()
                 if let error = error {
                     let alert = UIAlertController(title: "Error scanning", message: "\(error)", preferredStyle: .alert)
@@ -85,14 +85,14 @@ class ScanViewController: UIViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "connectedDeviceSegue" {
             if let destVC = segue.destination as? ConnectedViewController {
-                destVC.connectedDevice = connectedDevice
+                destVC.connectedDevice = connectedPeripheral
                 destVC.transport = self.transport
                 destVC.disconnectTapped = { [weak self] deviceToDisconnect in
                     self?.transport?.disconnect(immediate: true, completion: { error in
                         if let error = error {
                             print("Couldn't disconnect with error: \(error)")
                         } else {
-                            self?.connectedDevice = nil
+                            self?.connectedPeripheral = nil
                             self?.devicesTableView.reloadData()
                             destVC.dismiss(animated: true)
                         }
@@ -134,17 +134,17 @@ class ScanViewController: UIViewController {
 
 extension ScanViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return devicesServicesTuple.count
+        return peripheralsServicesTuple.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "deviceCell") as! DeviceFoundTableViewCell
         
-        let rowDevice = devicesServicesTuple[indexPath.row].device
-        cell.setupCell(deviceName: rowDevice.name, connecting: rowDevice == deviceConnecting)
+        let rowDevice = peripheralsServicesTuple[indexPath.row].peripheral
+        cell.setupCell(deviceName: rowDevice.name, connecting: rowDevice == peripheralConnecting)
         
         cell.connectTapped = { [weak self] in
-            self?.connectToDevice(rowDevice)
+            self?.connectToPeripheral(rowDevice)
             tableView.reloadRows(at: [indexPath], with: .automatic)
         }
         

@@ -141,13 +141,13 @@ extension BleTransport: BleModuleDelegate {
     private let debugMode: Bool
     
     private let configuration: BleTransportConfiguration
-    private var disconnectedCallback: EmptyResponse? /// Once `disconnectCallback` is set it never becomes `nil` again so we can reuse it in methods where we reconnect to the device blindly like `openApp/closeApp`
+    private var disconnectedCallback: EmptyResponse? /// Once `disconnectCallback` is set it never becomes `nil` again so we can reuse it in methods where we reconnect to the peripheral blindly like `openApp/closeApp`
     private var connectFailure: ((BleTransportError)->())?
     
     private var scanDuration: TimeInterval = 5.0 /// `scanDuration` will be overriden every time a value gets passed to `scan/create`
     
-    private var devicesServicesTuple = [DeviceInfoTuple]()
-    private var connectedDevice: DeviceIdentifier?
+    private var peripheralsServicesTuple = [PeripheralInfoTuple]()
+    private var connectedPeripheral: PeripheralIdentifier?
     private var bluetoothAvailabilityCompletion: ((Bool)->())?
     private var notifyDisconnectedCompletion: EmptyResponse?
     
@@ -158,7 +158,7 @@ extension BleTransport: BleModuleDelegate {
     private var currentResponseRemainingLength = 0
     
     /// Infer MTU
-    private var mtuWaitingForCallback: DeviceResponse?
+    private var mtuWaitingForCallback: PeripheralResponse?
     
     @objc
     public var isBluetoothAvailable: Bool {
@@ -167,7 +167,7 @@ extension BleTransport: BleModuleDelegate {
     
     @objc
     public var isConnected: Bool {
-        connectedDevice != nil
+        connectedPeripheral != nil
     }
     
     // MARK: - Initialization
@@ -184,7 +184,7 @@ extension BleTransport: BleModuleDelegate {
     
     // MARK: - Public Methods
     
-    public func scan(duration: TimeInterval, callback: @escaping DevicesWithServicesResponse, stopped: @escaping OptionalBleErrorResponse) {
+    public func scan(duration: TimeInterval, callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalBleErrorResponse) {
         DispatchQueue.main.async {
             /*if self.bluejay.isScanning {
                 self.bluejay.stopScanning()
@@ -194,23 +194,23 @@ extension BleTransport: BleModuleDelegate {
                 self.bluejay.disconnect()
             }*/
             
-            self.devicesServicesTuple = [] /// We clean `devicesServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to devices
+            self.peripheralsServicesTuple = [] /// We clean `peripheralsServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to peripherals
             
             self.bleModule.scan(duration: duration, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
                 guard let self = self else { return .continue }
-                if self.updateDevicesServicesTuple(discoveries: discoveries) {
-                    callback(self.devicesServicesTuple)
+                if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
+                    callback(self.peripheralsServicesTuple)
                 }
                 return .continue
             }, expired: { [weak self] discovery, discoveries in
                 guard let self = self else { return .continue }
-                if self.updateDevicesServicesTuple(discoveries: discoveries) {
-                    callback(self.devicesServicesTuple)
+                if self.updatePeripheralsServicesTuple(discoveries: discoveries) {
+                    callback(self.peripheralsServicesTuple)
                 }
                 return .continue
             }, stopped: { [weak self] discoveries, error, timedOut in
                 guard let self = self else { return }
-                self.updateDevicesServicesTuple(discoveries: discoveries)
+                self.updatePeripheralsServicesTuple(discoveries: discoveries)
                 if let error = error {
                     print("Stopped scanning with error: \(error)")
                     stopped(.scanError(description: error.localizedDescription))
@@ -231,14 +231,14 @@ extension BleTransport: BleModuleDelegate {
         }
     }
     
-    public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
+    public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse) {
         self.scanDuration = scanDuration
         
         var connecting = false
         
-        func attemptConnecting(deviceInfo: DeviceInfoTuple) {
-            connect(toDeviceID: deviceInfo.device, disconnectedCallback: disconnectedCallback, success: { connectedDevice in
-                success(connectedDevice)
+        func attemptConnecting(peripheralInfo: PeripheralInfoTuple) {
+            connect(toPeripheralID: peripheralInfo.peripheral, disconnectedCallback: disconnectedCallback, success: { connectedPeripheral in
+                success(connectedPeripheral)
             }, failure: failure)
         }
         
@@ -246,7 +246,7 @@ extension BleTransport: BleModuleDelegate {
             guard let firstDiscovery = discoveries.first else { return }
             if !connecting {
                 connecting = true
-                attemptConnecting(deviceInfo: firstDiscovery)
+                attemptConnecting(peripheralInfo: firstDiscovery)
             }
         } stopped: { error in
             if let error = error {
@@ -282,30 +282,30 @@ extension BleTransport: BleModuleDelegate {
     ///   - success: The success callback
     ///   - failure: The failue callback
     fileprivate func send<S: Sendable>(value: S, retryWithResponse: Bool = false, success: @escaping EmptyResponse, failure: @escaping BleErrorResponse) {
-        guard let connectedDevice = connectedDevice else { failure(.writeError(description: "Not connected")); return }
-        guard let connectedDeviceTuple = devicesServicesTuple.first(where: { $0.device.uuid == connectedDevice.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "devicesServiceTuple doesn't contain conencted device UUID"))); return }
-        guard let deviceService = configuration.services.first(where: { configService in connectedDeviceTuple.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No matching deviceService")); return }
+        guard let connectedPeripheral = connectedPeripheral else { failure(.writeError(description: "Not connected")); return }
+        guard let connectedPeripheralTuple = peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "peripheralsServiceTuple doesn't contain connected peripheral UUID"))); return }
+        guard let peripheralService = configuration.services.first(where: { configService in connectedPeripheralTuple.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No matching peripheralService")); return }
         let writeCharacteristic: CharacteristicIdentifier
         let type: CBCharacteristicWriteType
-        if let canWriteWithoutCharacteristic = connectedDeviceTuple.canWriteWithoutResponse {
-            writeCharacteristic = deviceService.writeCharacteristic(canWriteWithoutResponse: canWriteWithoutCharacteristic)
+        if let canWriteWithoutCharacteristic = connectedPeripheralTuple.canWriteWithoutResponse {
+            writeCharacteristic = peripheralService.writeCharacteristic(canWriteWithoutResponse: canWriteWithoutCharacteristic)
             type = canWriteWithoutCharacteristic ? .withoutResponse : .withResponse
         } else {
-            writeCharacteristic = retryWithResponse ? deviceService.writeWithResponse : deviceService.writeWithoutResponse
+            writeCharacteristic = retryWithResponse ? peripheralService.writeWithResponse : peripheralService.writeWithoutResponse
             type = retryWithResponse ? .withResponse : .withoutResponse
         }
         self.bleModule.write(to: writeCharacteristic, value: value, type: type) { [weak self] result in
             guard let self = self else { failure(.writeError(description: "Self got deallocated")); return }
             switch result {
             case .success:
-                if connectedDeviceTuple.canWriteWithoutResponse == nil {
-                    if let tupleIndex = self.devicesServicesTuple.firstIndex(where: { $0.device.uuid == connectedDevice.uuid }) {
-                        self.devicesServicesTuple[tupleIndex].canWriteWithoutResponse = type == .withoutResponse
+                if connectedPeripheralTuple.canWriteWithoutResponse == nil {
+                    if let tupleIndex = self.peripheralsServicesTuple.firstIndex(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) {
+                        self.peripheralsServicesTuple[tupleIndex].canWriteWithoutResponse = type == .withoutResponse
                     }
                 }
                 success()
             case .failure(let error):
-                if connectedDeviceTuple.canWriteWithoutResponse == nil {
+                if connectedPeripheralTuple.canWriteWithoutResponse == nil {
                     self.send(value: value, retryWithResponse: true, success: success, failure: failure)
                 } else {
                     print(error.localizedDescription)
@@ -319,7 +319,7 @@ extension BleTransport: BleModuleDelegate {
         self.bleModule.disconnect { [weak self] result in
             switch result {
             case .disconnected(_):
-                self?.connectedDevice = nil
+                self?.connectedPeripheral = nil
                 completion?(nil)
             case .failure(let error):
                 completion?(.lowerLevelError(description: error.localizedDescription))
@@ -327,17 +327,16 @@ extension BleTransport: BleModuleDelegate {
         }
     }
     
-    public func connect(toDeviceID device: DeviceIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping DeviceResponse, failure: @escaping BleErrorResponse) {
+    public func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse) {
         self.stopScanning()
         
         self.disconnectedCallback = disconnectedCallback
         
         let connect = {
-            self.bleModule.connect(peripheralIdentifier: device.toPeripheralIdentifier(), timeout: .seconds(5)) { [weak self ] result in
+            self.bleModule.connect(peripheralIdentifier: peripheral, timeout: .seconds(5)) { [weak self ] result in
                 switch result {
                 case .success(let peripheral):
-                    let peripheralIdentifier = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
-                    self?.connectedDevice = DeviceIdentifier(peripheralIdentifier: peripheralIdentifier)
+                    self?.connectedPeripheral = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
                     self?.connectFailure = failure
                     self?.startListening()
                     self?.mtuWaitingForCallback = success
@@ -348,8 +347,8 @@ extension BleTransport: BleModuleDelegate {
             }
         }
         
-        if !devicesServicesTuple.contains(where: { $0.device == device }) {
-            scanAndDiscoverBeforeConnecting(lookingFor: device, connectFunction: connect, failure: failure)
+        if !peripheralsServicesTuple.contains(where: { $0.peripheral == peripheral }) {
+            scanAndDiscoverBeforeConnecting(lookingFor: peripheral, connectFunction: connect, failure: failure)
         } else {
             connect()
         }
@@ -423,49 +422,48 @@ extension BleTransport: BleModuleDelegate {
     
     // MARK: - Private methods
     
-    /// Updates the current list of devices matching them with their service.
+    /// Updates the current list of peripherals matching them with their service.
     ///
-    /// - Parameter discoveries: All the current devices.
+    /// - Parameter discoveries: All the current peripherals.
     /// - Returns: A boolean indicating whether the last changed since the last update.
     @discardableResult
-    fileprivate func updateDevicesServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
-        var auxDevices = [DeviceInfoTuple]()
+    fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
+        var auxPeripherals = [PeripheralInfoTuple]()
         for discovery in discoveries {
-            let device = DeviceIdentifier(peripheralIdentifier: discovery.peripheralIdentifier)
             if let services = discovery.advertisementPacket["kCBAdvDataServiceUUIDs"] as? [CBUUID], let firstService = services.first {
-                auxDevices.append((device: device, rssi: discovery.rssi, serviceUUID: firstService, canWriteWithoutResponse: nil))
+                auxPeripherals.append((peripheral: discovery.peripheralIdentifier, rssi: discovery.rssi, serviceUUID: firstService, canWriteWithoutResponse: nil))
             }
         }
         
-        let somethingChanged = auxDevices.map({ $0.device }) != devicesServicesTuple.map({ $0.device })
+        let somethingChanged = auxPeripherals.map({ $0.peripheral }) != peripheralsServicesTuple.map({ $0.peripheral })
         
-        devicesServicesTuple = auxDevices
+        peripheralsServicesTuple = auxPeripherals
         
         return somethingChanged
     }
     
-    fileprivate func scanAndDiscoverBeforeConnecting(lookingFor: DeviceIdentifier, connectFunction: @escaping ()->(), failure: @escaping BleErrorResponse) {
+    fileprivate func scanAndDiscoverBeforeConnecting(lookingFor: PeripheralIdentifier, connectFunction: @escaping ()->(), failure: @escaping BleErrorResponse) {
         let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
             self.stopScanning()
-            failure(.connectError(description: "Couldn't find device when scanning, timed out"))
+            failure(.connectError(description: "Couldn't find peripheral when scanning, timed out"))
         }
         
         scan(duration: scanDuration) { [weak self] discoveries in
-            if discoveries.contains(where: { $0.device == lookingFor }) {
+            if discoveries.contains(where: { $0.peripheral == lookingFor }) {
                 timer.invalidate()
                 connectFunction()
                 self?.stopScanning()
             }
         } stopped: { error in
             if let error = error {
-                failure(.connectError(description: "Couldn't find device when scanning because of error: \(error.localizedDescription)"))
+                failure(.connectError(description: "Couldn't find peripheral when scanning because of error: \(error.localizedDescription)"))
             }
         }
 
     }
     
     /**
-     * Write the next ble frame to the device,  only triggered from the exchange/send methods.
+     * Write the next ble frame to the peripheral, only triggered from the exchange/send methods.
      **/
     fileprivate func writeAPDU(_ apdu: APDU, withResponse: Bool = false) {
         guard !apdu.isEmpty else { self.exchangeCallback?(.failure(.writeError(description: "APDU is empty"))); return }
@@ -531,9 +529,9 @@ extension BleTransport: BleModuleDelegate {
     }
     
     fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping BleErrorResponse) {
-        guard let connectedDevice = connectedDevice else { failure(.listenError(description: "Not connected")); return }
-        guard let deviceService = configuration.services.first(where: { configService in devicesServicesTuple.first(where: { $0.device.uuid == connectedDevice.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching deviceService")); return }
-        self.bleModule.listen(to: deviceService.notify) { (result: ReadResult<APDU>) in
+        guard let connectedPeripheral = connectedPeripheral else { failure(.listenError(description: "Not connected")); return }
+        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching peripheralService")); return }
+        self.bleModule.listen(to: peripheralService.notify) { (result: ReadResult<APDU>) in
             switch result {
             case .success(let apdu):
                 apduReceived(apdu)
@@ -564,13 +562,13 @@ extension BleTransport: BleModuleDelegate {
                 APDU.mtuSize = Int(fifthByte)
             }
         }
-        if let connectedDevice = connectedDevice {
-            mtuWaitingForCallback?(connectedDevice)
+        if let connectedPeripheral = connectedPeripheral {
+            mtuWaitingForCallback?(connectedPeripheral)
         }
     }
     
     fileprivate func clearConnection() {
-        connectedDevice = nil
+        connectedPeripheral = nil
         isExchanging = false
         notifyDisconnectedCompletion?()
         notifyDisconnectedCompletion = nil /// We call `notifyDisconnectedCompletion` only once since it's used to be notified about the next disconnection not all of them
@@ -664,12 +662,12 @@ extension BleTransport: BleModuleDelegate {
 /// Async implementations
 extension BleTransport {
     @discardableResult
-    public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> DeviceIdentifier {
+    public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier {
         let lock = NSLock()
         return try await withCheckedThrowingContinuation { continuation in
             
             // https://forums.swift.org/t/how-to-prevent-swift-task-continuation-misuse/57581
-            var nillableContinuation: CheckedContinuation<DeviceIdentifier, Error>? = continuation
+            var nillableContinuation: CheckedContinuation<PeripheralIdentifier, Error>? = continuation
             
             create(scanDuration: scanDuration, disconnectedCallback: disconnectedCallback) { response in
                 lock.lock()
@@ -687,14 +685,14 @@ extension BleTransport {
         }
     }
     @discardableResult
-    public func connect(toDeviceID: DeviceIdentifier, disconnectedCallback: EmptyResponse?) async throws -> DeviceIdentifier {
+    public func connect(toPeripheralID: PeripheralIdentifier, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier {
         let lock = NSLock()
         return try await withCheckedThrowingContinuation { continuation in
             
             // https://forums.swift.org/t/how-to-prevent-swift-task-continuation-misuse/57581
-            var nillableContinuation: CheckedContinuation<DeviceIdentifier, Error>? = continuation
+            var nillableContinuation: CheckedContinuation<PeripheralIdentifier, Error>? = continuation
             
-            connect(toDeviceID: toDeviceID, disconnectedCallback: disconnectedCallback) { response in
+            connect(toPeripheralID: toPeripheralID, disconnectedCallback: disconnectedCallback) { response in
                 lock.lock()
                 defer { lock.unlock() }
                 nillableContinuation?.resume(returning: response)
