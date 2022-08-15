@@ -25,7 +25,7 @@ public enum DiscoverCharacteristicError: LocalizedError {
     }
 }
 
-class DiscoverCharacteristic: Operation {
+class DiscoverCharacteristic: TaskOperation {
     
     var finished: EmptyResponse?
     

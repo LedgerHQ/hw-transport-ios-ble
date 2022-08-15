@@ -30,7 +30,7 @@ public enum ConnectionError: LocalizedError {
     }
 }
 
-public class Connect: Operation {
+public class Connect: TaskOperation {
     
     var finished: EmptyResponse?
     

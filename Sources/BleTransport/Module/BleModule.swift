@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  BleModule.swift
 //  BleTransport
 //
 //  Created by Dante Puglisi on 8/2/22.
@@ -27,7 +27,7 @@ protocol BleModuleDelegate {
     func disconnected(from peripheral: PeripheralIdentifier)
 }
 
-protocol Operation: AnyObject {
+protocol TaskOperation: AnyObject {
     var finished: EmptyResponse? { get set }
     
     func start()
@@ -57,7 +57,7 @@ public class BleModule: NSObject {
         self.cbCentralManager = CBCentralManager(delegate: self, queue: nil)
     }
     
-    private func addOperation(_ operation: Operation) {
+    private func addOperation(_ operation: TaskOperation) {
         operation.finished = { [weak self] in
             if let first = self?.operationsQueue.first, first === operation {
                 operation.finished = nil
@@ -212,7 +212,7 @@ extension BleModule: CBCentralManagerDelegate {
 }
 
 extension BleModule: PeripheralDelegate {
-    func requestStartOperation(_ operation: Operation) {
+    func requestStartOperation(_ operation: TaskOperation) {
         addOperation(operation)
     }
     

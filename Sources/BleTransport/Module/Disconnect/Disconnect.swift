@@ -9,7 +9,7 @@ import CoreBluetooth
 import Foundation
 
 /// A disconnection operation.
-class Disconnect: Operation {
+class Disconnect: TaskOperation {
     
     var finished: EmptyResponse?
     

@@ -8,7 +8,7 @@
 import Foundation
 import CoreBluetooth
 
-class Listen: Operation {
+class Listen: TaskOperation {
     
     var finished: EmptyResponse?
     

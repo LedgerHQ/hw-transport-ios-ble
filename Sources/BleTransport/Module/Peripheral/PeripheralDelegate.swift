@@ -9,7 +9,7 @@ import Foundation
 import CoreBluetooth
 
 protocol PeripheralDelegate: AnyObject {
-    func requestStartOperation(_ operation: Operation)
+    func requestStartOperation(_ operation: TaskOperation)
     func didDiscoverServices()
     func didDiscoverCharacteristics()
     func didUpdateCharacteristicNotificationState()

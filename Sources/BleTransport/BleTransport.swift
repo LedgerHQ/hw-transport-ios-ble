@@ -186,14 +186,6 @@ extension BleTransport: BleModuleDelegate {
     
     public func scan(duration: TimeInterval, callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalBleErrorResponse) {
         DispatchQueue.main.async {
-            /*if self.bluejay.isScanning {
-                self.bluejay.stopScanning()
-            }
-            
-            if self.bluejay.isConnected {
-                self.bluejay.disconnect()
-            }*/
-            
             self.peripheralsServicesTuple = [] /// We clean `peripheralsServicesTuple` at the start of each scan so the changes can be properly propagated and not before because it has info needed for connecting and writing to peripherals
             
             self.bleModule.scan(duration: duration, serviceIdentifiers: self.configuration.services.map({ $0.service }), discovery: { [weak self] discovery, discoveries in
@@ -226,7 +218,6 @@ extension BleTransport: BleModuleDelegate {
     @objc
     public func stopScanning() {
         DispatchQueue.main.async {
-            //self.bluejay.stopScanning()
             self.bleModule.stopScanning()
         }
     }

@@ -19,7 +19,7 @@ public enum DiscoverServiceError: LocalizedError {
     }
 }
 
-class DiscoverService: Operation {
+class DiscoverService: TaskOperation {
     
     var finished: EmptyResponse?
     
