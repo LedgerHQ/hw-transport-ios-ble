@@ -52,7 +52,7 @@ public enum BleTransportError: LocalizedError {
     public var id: String? {
         switch self {
         case .pendingActionOnDevice:
-            return nil
+            return "TransportRaceCondition"
         case .userRefusedOnDevice:
             return nil
         case .scanningTimedOut:
