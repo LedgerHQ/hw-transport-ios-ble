@@ -403,16 +403,7 @@ public enum BleTransportError: Error {
             if self.currentResponseRemainingLength <= 0 {
                 /// We got the full response in `currentResponse`
                 self.isExchanging = false
-                let statusCode = self.currentResponse.suffix(4)
-                if statusCode.count == 4 {
-                    if statusCode == "9000" {
-                        self.exchangeCallback?(.success(self.currentResponse))
-                    } else {
-                        self.exchangeCallback?(.failure(.lowerLevelError(description: "Status code: \(statusCode)")))
-                    }
-                } else {
-                    self.exchangeCallback?(.failure(.lowerLevelError(description: "No status code")))
-                }
+                self.exchangeCallback?(.success(self.currentResponse))
                 self.currentResponse = ""
                 self.currentResponseRemainingLength = 0
             } else {
