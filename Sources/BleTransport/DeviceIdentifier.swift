@@ -13,12 +13,12 @@ public class DeviceIdentifier: NSObject {
     public let uuid: UUID
     public let name: String
     
-    init(uuid: UUID, name: String?) {
+    public init(uuid: UUID, name: String?) {
         self.uuid = uuid
         self.name = name ?? "No Name"
     }
     
-    init(peripheralIdentifier: PeripheralIdentifier) {
+    public init(peripheralIdentifier: PeripheralIdentifier) {
         self.uuid = peripheralIdentifier.uuid
         self.name = peripheralIdentifier.name
     }
