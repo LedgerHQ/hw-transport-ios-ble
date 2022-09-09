@@ -224,9 +224,9 @@ extension BleModule: PeripheralDelegate {
         operationsQueue.operationsOfType(DiscoverCharacteristic.self).first?.didDiscoverCharacteristics()
     }
     
-    func didUpdateCharacteristicNotificationState() {
+    func didUpdateCharacteristicNotificationState(error: Error?) {
         operationsQueue.operationsOfType(Listen.self).forEach({
-            $0.didUpdateCharacteristicNotificationState()
+            $0.didUpdateCharacteristicNotificationState(error: error)
         })
     }
     

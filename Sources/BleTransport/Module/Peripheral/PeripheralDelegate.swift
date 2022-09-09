@@ -12,6 +12,6 @@ protocol PeripheralDelegate: AnyObject {
     func requestStartOperation(_ operation: TaskOperation)
     func didDiscoverServices()
     func didDiscoverCharacteristics()
-    func didUpdateCharacteristicNotificationState()
+    func didUpdateCharacteristicNotificationState(error: Error?)
     func didUpdateValueFor(characteristic: CBCharacteristic, error: Error?)
 }

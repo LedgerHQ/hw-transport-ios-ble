@@ -148,7 +148,7 @@ extension Peripheral: CBPeripheralDelegate {
     /// Captures CoreBluetooth's did turn on or off notification/listening on a characteristic event and pass it to Bluejay's queue for processing.
     public func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         //handle(event: .didUpdateCharacteristicNotificationState(characteristic), error: error as NSError?)
-        delegate.didUpdateCharacteristicNotificationState()
+        delegate.didUpdateCharacteristicNotificationState(error: error)
     }
     
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {

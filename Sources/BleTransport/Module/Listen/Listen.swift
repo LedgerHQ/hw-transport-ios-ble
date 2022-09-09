@@ -69,13 +69,13 @@ class Listen: TaskOperation {
         finished?()
     }
     
-    func didUpdateCharacteristicNotificationState() {
+    func didUpdateCharacteristicNotificationState(error: Error?) {
         /*if value {
             print("Listening to \(characteristicIdentifier.description) on \(peripheral.name ?? peripheral.identifier.uuidString).")
         } else {
             print("Stopped listening to \(characteristicIdentifier.description) on \(peripheral.name ?? peripheral.identifier.uuidString).")
         }*/
         
-        complete(withError: nil)
+        complete(withError: error)
     }
 }
