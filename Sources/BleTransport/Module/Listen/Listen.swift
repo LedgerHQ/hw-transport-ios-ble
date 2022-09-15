@@ -13,13 +13,13 @@ class Listen: TaskOperation {
     var finished: EmptyResponse?
     
     /// The peripheral this operation is for.
-    var peripheral: CBPeripheral
+    let peripheral: CBPeripheral
     
     /// The characteristic to listen to.
-    var characteristicIdentifier: CharacteristicIdentifier
+    let characteristicIdentifier: CharacteristicIdentifier
     
     /// Whether to start listening or to stop listening.
-    var value: Bool
+    let value: Bool
     
     /// Callback for the attempt to start or stop listening, not the values received from the characteristic.
     private var callback: ((WriteResult) -> Void)?

@@ -11,7 +11,7 @@ import CoreBluetooth
 public class Peripheral: NSObject {
     
     private(set) weak var delegate: PeripheralDelegate!
-    private(set) var cbPeripheral: CBPeripheral!
+    let cbPeripheral: CBPeripheral
     
     private var listeners: [CharacteristicIdentifier: (ReadResult<Data?>) -> Void?] = [:]
     
@@ -20,14 +20,6 @@ public class Peripheral: NSObject {
         self.cbPeripheral = cbPeripheral
         
         super.init()
-        
-        guard self.delegate != nil else {
-            fatalError("Peripheral initialized without a PeripheralDelegate association.")
-        }
-        
-        guard self.cbPeripheral != nil else {
-            fatalError("Peripheral initialized without a CBPeripheral association.")
-        }
         
         self.cbPeripheral.delegate = self
     }
@@ -128,31 +120,19 @@ public class Peripheral: NSObject {
 
 extension Peripheral: CBPeripheralDelegate {
     
-    /// Captures CoreBluetooth's did discover services event and pass it to Bluejay's queue for processing.
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        //handle(event: .didDiscoverServices, error: error as NSError?)
         delegate.didDiscoverServices()
     }
     
-    /// Captures CoreBluetooth's did discover characteristics event and pass it to Bluejay's queue for processing.
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        //handle(event: .didDiscoverCharacteristics, error: error as NSError?)
         delegate.didDiscoverCharacteristics()
     }
     
-    /// Captures CoreBluetooth's did write to charactersitic event and pass it to Bluejay's queue for processing.
-    /*public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        handle(event: .didWriteCharacteristic(characteristic), error: error as NSError?)
-    }*/
-    
-    /// Captures CoreBluetooth's did turn on or off notification/listening on a characteristic event and pass it to Bluejay's queue for processing.
     public func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
-        //handle(event: .didUpdateCharacteristicNotificationState(characteristic), error: error as NSError?)
         delegate.didUpdateCharacteristicNotificationState(error: error)
     }
     
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        //print("LISTENERS: \(listeners)")
         delegate.didUpdateValueFor(characteristic: characteristic, error: error)
     }
 }

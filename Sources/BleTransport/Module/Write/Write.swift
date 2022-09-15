@@ -13,16 +13,16 @@ class Write<T: Sendable>: TaskOperation {
     var finished: EmptyResponse?
     
     /// The peripheral this operation is for.
-    var peripheral: CBPeripheral
+    let peripheral: CBPeripheral
     
     /// The characteristic to write to.
-    var characteristicIdentifier: CharacteristicIdentifier
+    let characteristicIdentifier: CharacteristicIdentifier
     
     /// The value to write.
-    var value: T
+    let value: T
     
     // Type of write
-    var writeType: CBCharacteristicWriteType
+    let writeType: CBCharacteristicWriteType
     
     /// Callback for the write attempt.
     private var callback: ((WriteResult) -> Void)?

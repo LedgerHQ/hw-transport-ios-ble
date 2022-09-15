@@ -22,10 +22,6 @@ class Disconnect: TaskOperation {
     /// Callback for the disconnection attempt.
     var callback: ((DisconnectionResult) -> Void)?
     
-    deinit {
-        //print("Deinited Disconnect")
-    }
-    
     init(peripheral: CBPeripheral, manager: CBCentralManager, callback: ((DisconnectionResult) -> Void)?) {
         self.peripheral = peripheral
         self.manager = manager
@@ -35,8 +31,6 @@ class Disconnect: TaskOperation {
     
     func start() {
         manager.cancelPeripheralConnection(peripheral)
-        
-        //print("Started disconnecting from \(peripheral.name ?? peripheral.identifier.uuidString).")
     }
     
     func didDisconnectPeripheral(peripheral: PeripheralIdentifier) {
@@ -48,12 +42,9 @@ class Disconnect: TaskOperation {
         callback = nil
         
         /// We don't call `finished?()` on `Disconnect` because we don't want the queue to advance to the next operation, as soon as the delegate received `didDisconnect` it clears the queue
-        //finished?()
     }
     
     func fail(_ error: Error) {
-        //print("Failed disconnecting from: \(peripheral.name ?? peripheral.identifier.uuidString) with error: \(error.localizedDescription)")
-        
         complete(.failure(error))
     }
 }

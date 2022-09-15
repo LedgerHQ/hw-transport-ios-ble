@@ -14,6 +14,7 @@ public enum BleTransportError: LocalizedError {
     case userRefusedOnDevice
     case scanningTimedOut
     case connectError(description: String)
+    case currentConnectedError(description: String)
     case writeError(description: String)
     case readError(description: String)
     case listenError(description: String)
@@ -32,6 +33,8 @@ public enum BleTransportError: LocalizedError {
             return "No Ledger device found (timeout)"
         case .connectError(let description):
             return "Connect error: \(description)"
+        case .currentConnectedError(let description):
+            return "Current connected error: \(description)"
         case .writeError(let description):
             return "Write error: \(description)"
         case .readError(let description):
@@ -58,6 +61,8 @@ public enum BleTransportError: LocalizedError {
             /// https://github.com/LedgerHQ/ledger-live/blob/acdd59af6dcfcda1d136ccbfc8fdf49311485a32/libs/ledgerjs/packages/hw-transport/src/Transport.ts#L261
             return "ListenTimeout"
         case .connectError(_):
+            return nil
+        case .currentConnectedError(_):
             return nil
         case .writeError(_):
             return nil
@@ -130,6 +135,10 @@ extension BleTransport: BleModuleDelegate {
             clearConnection()
         }
     }
+    
+    func bluetoothState(_ state: CBManagerState) {
+        bluetoothStateCompletion?(state)
+    }
 }
 
 @objc public class BleTransport: NSObject, BleTransportProtocol {
@@ -149,6 +158,7 @@ extension BleTransport: BleModuleDelegate {
     private var peripheralsServicesTuple = [PeripheralInfoTuple]()
     private var connectedPeripheral: PeripheralIdentifier?
     private var bluetoothAvailabilityCompletion: ((Bool)->())?
+    private var bluetoothStateCompletion: ((CBManagerState)->())?
     private var notifyDisconnectedCompletion: EmptyResponse?
     
     /// Exchange handling
@@ -273,9 +283,17 @@ extension BleTransport: BleModuleDelegate {
     ///   - success: The success callback
     ///   - failure: The failue callback
     fileprivate func send<S: Sendable>(value: S, retryWithResponse: Bool = false, success: @escaping EmptyResponse, failure: @escaping BleErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { failure(.writeError(description: "Not connected")); return }
-        guard let connectedPeripheralTuple = peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) else { self.exchangeCallback?(.failure(.writeError(description: "peripheralsServiceTuple doesn't contain connected peripheral UUID"))); return }
-        guard let peripheralService = configuration.services.first(where: { configService in connectedPeripheralTuple.serviceUUID == configService.service.uuid }) else { failure(.writeError(description: "No matching peripheralService")); return }
+        let connectedPeripheral: PeripheralIdentifier
+        let connectedPeripheralTuple: PeripheralInfoTuple
+        let peripheralService: BleService
+        let currentConnectedTuple = currentConnectedTuple()
+        switch currentConnectedTuple {
+        case .success(let tuple):
+            (connectedPeripheral, connectedPeripheralTuple, peripheralService) = tuple
+        case .failure(let error):
+            failure(error)
+            return
+        }
         let writeCharacteristic: CharacteristicIdentifier
         let type: CBCharacteristicWriteType
         if let canWriteWithoutCharacteristic = connectedPeripheralTuple.canWriteWithoutResponse {
@@ -324,14 +342,15 @@ extension BleTransport: BleModuleDelegate {
         self.disconnectedCallback = disconnectedCallback
         
         let connect = {
-            self.bleModule.connect(peripheralIdentifier: peripheral, timeout: .seconds(5)) { [weak self ] result in
+            self.bleModule.connect(peripheralIdentifier: peripheral, timeout: .seconds(5)) { [weak self] result in
+                guard let self = self else { return }
                 switch result {
                 case .success(let peripheral):
-                    self?.connectedPeripheral = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
-                    self?.connectFailure = failure
-                    self?.startListening()
-                    self?.mtuWaitingForCallback = success
-                    self?.inferMTU()
+                    self.connectedPeripheral = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
+                    self.connectFailure = failure
+                    self.startListening()
+                    self.mtuWaitingForCallback = success
+                    self.inferMTU()
                 case .failure(let error):
                     failure(.connectError(description: error.localizedDescription))
                 }
@@ -348,6 +367,11 @@ extension BleTransport: BleModuleDelegate {
     public func bluetoothAvailabilityCallback(completion: @escaping ((Bool)->())) {
         completion(isBluetoothAvailable)
         bluetoothAvailabilityCompletion = completion
+    }
+    
+    public func bluetoothStateCallback(completion: @escaping ((CBManagerState)->())) {
+        completion(self.bleModule.bluetoothState)
+        bluetoothStateCompletion = completion
     }
     
     public func notifyDisconnected(completion: @escaping EmptyResponse) {
@@ -453,6 +477,14 @@ extension BleTransport: BleModuleDelegate {
 
     }
     
+    fileprivate func currentConnectedTuple() -> Result<(PeripheralIdentifier, PeripheralInfoTuple, BleService), BleTransportError> {
+        guard let connectedPeripheral = connectedPeripheral else { return .failure(.currentConnectedError(description: "Not connected")) }
+        guard let connectedPeripheralTuple = peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) else { return .failure(.currentConnectedError(description: "peripheralsServiceTuple doesn't contain connected peripheral UUID")) }
+        guard let peripheralService = configuration.serviceMatching(serviceUUID: connectedPeripheralTuple.serviceUUID) else { return .failure(.currentConnectedError(description: "No matching peripheralService")) }
+        
+        return .success((connectedPeripheral, connectedPeripheralTuple, peripheralService))
+    }
+    
     /**
      * Write the next ble frame to the peripheral, only triggered from the exchange/send methods.
      **/
@@ -520,8 +552,15 @@ extension BleTransport: BleModuleDelegate {
     }
     
     fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping BleErrorResponse) {
-        guard let connectedPeripheral = connectedPeripheral else { failure(.listenError(description: "Not connected")); return }
-        guard let peripheralService = configuration.services.first(where: { configService in peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid })?.serviceUUID == configService.service.uuid }) else { failure(.listenError(description: "No matching peripheralService")); return }
+        let peripheralService: BleService
+        let currentConnectedTuple = currentConnectedTuple()
+        switch currentConnectedTuple {
+        case .success(let tuple):
+            (_, _, peripheralService) = tuple
+        case .failure(let error):
+            failure(error)
+            return
+        }
         self.bleModule.listen(to: peripheralService.notify) { (result: ReadResult<APDU>) in
             switch result {
             case .success(let apdu):
@@ -537,11 +576,10 @@ extension BleTransport: BleModuleDelegate {
     }
     
     fileprivate func inferMTU() {
-        let apduToSend = APDU(data: [0x08,0x00,0x00,0x00,0x00])
-        send(value: apduToSend) {
+        send(value: APDU.inferMTU) {
             
         } failure: { error in
-            print("Error infering MTU: \(error.localizedDescription)")
+            print("Error inferring MTU: \(error.localizedDescription)")
         }
 
 

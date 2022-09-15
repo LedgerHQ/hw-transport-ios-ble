@@ -18,6 +18,8 @@ public class APDU: Sendable, Receivable {
         chunks.isEmpty
     }
     
+    public static let inferMTU = APDU(data: [0x08,0x00,0x00,0x00,0x00])
+    
     public init(data: [UInt8]) {
         let dataReceived = Data(data)
         self.data = dataReceived

@@ -22,8 +22,9 @@ enum BleModuleError: LocalizedError {
     }
 }
 
-protocol BleModuleDelegate {
+protocol BleModuleDelegate: AnyObject {
     func bluetoothAvailable(_ available: Bool)
+    func bluetoothState(_ state: CBManagerState)
     func disconnected(from peripheral: PeripheralIdentifier)
 }
 
@@ -36,7 +37,7 @@ protocol TaskOperation: AnyObject {
 public class BleModule: NSObject {
     private var cbCentralManager: CBCentralManager!
     
-    private var delegate: BleModuleDelegate!
+    private weak var delegate: BleModuleDelegate!
     
     private var operationsQueue = Queue()
     
@@ -50,6 +51,10 @@ public class BleModule: NSObject {
         } else {
             return cbCentralManager.state == .poweredOn
         }
+    }
+    
+    public var bluetoothState: CBManagerState {
+        return cbCentralManager.state
     }
     
     func start(delegate: BleModuleDelegate) {
@@ -112,19 +117,19 @@ extension BleModule {
         value: S,
         type: CBCharacteristicWriteType = .withResponse,
         completion: @escaping (WriteResult) -> Void) {
-            if let peripheral = connectedPeripheral {
-                Task() {
-                    do {
-                        try await peripheral.prepareForCharacteristic(characteristicIdentifier)
-                        let writeOperation = Write(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: value, writeType: type, callback: completion)
-                        self.addOperation(writeOperation)
-                    } catch {
-                        completion(.failure(error))
-                    }
-                }
-            } else {
+            guard let peripheral = connectedPeripheral else {
                 print("Cannot request write on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
                 completion(.failure(BleModuleError.notConnected))
+                return
+            }
+            Task() {
+                do {
+                    try await peripheral.prepareForCharacteristic(characteristicIdentifier)
+                    let writeOperation = Write(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: value, writeType: type, callback: completion)
+                    self.addOperation(writeOperation)
+                } catch {
+                    completion(.failure(error))
+                }
             }
         }
 }
@@ -134,31 +139,30 @@ extension BleModule {
     public func listen<R: Receivable>(
         to characteristicIdentifier: CharacteristicIdentifier,
         completion: @escaping (ReadResult<R>) -> Void) {
-            if let peripheral = connectedPeripheral {
-                //print("Requesting listen on \(characteristicIdentifier.description)...")
-                
-                Task() {
-                    do {
-                        try await peripheral.prepareForCharacteristic(characteristicIdentifier)
-                        
-                        let listenOperation = Listen(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: true) { [weak self] result in
-                            guard let self = self else { completion(.failure(BleModuleError.selfIsNil)); return }
-                            
-                            switch result {
-                            case .success:
-                                self.listeners[characteristicIdentifier] = ({ dataResult in
-                                    completion(ReadResult<R>(dataResult: dataResult))
-                                })
-                            case .failure(let error):
-                                completion(.failure(error))
-                            }
-                        }
-                        addOperation(listenOperation)
-                    }
-                }
-            } else {
+            guard let peripheral = connectedPeripheral else {
                 print("Cannot request listen on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
                 completion(.failure(BleModuleError.notConnected))
+                return
+            }
+            
+            Task() {
+                do {
+                    try await peripheral.prepareForCharacteristic(characteristicIdentifier)
+                    
+                    let listenOperation = Listen(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: true) { [weak self] result in
+                        guard let self = self else { completion(.failure(BleModuleError.selfIsNil)); return }
+                        
+                        switch result {
+                        case .success:
+                            self.listeners[characteristicIdentifier] = ({ dataResult in
+                                completion(ReadResult<R>(dataResult: dataResult))
+                            })
+                        case .failure(let error):
+                            completion(.failure(error))
+                        }
+                    }
+                    addOperation(listenOperation)
+                }
             }
         }
 }
@@ -175,16 +179,7 @@ extension BleModule {
 extension BleModule: CBCentralManagerDelegate {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         delegate.bluetoothAvailable(central.state == .poweredOn)
-        switch central.state {
-        case .poweredOn:
-            print("Bluetooth is on")
-        case .poweredOff:
-            print("Bluetooth is off")
-        case .unauthorized:
-            print("App is unauthorized")
-        default:
-            print("Bluetooth is unsupported")
-        }
+        delegate.bluetoothState(central.state)
     }
     
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {

@@ -45,6 +45,7 @@ class Queue {
     
     func removeAll(finished: EmptyResponse? = nil) {
         DispatchQueue.main.async {
+            self.queue.forEach({ $0.finished = nil })
             self.queue.removeAll()
             finished?()
         }

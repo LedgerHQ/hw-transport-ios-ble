@@ -29,14 +29,10 @@ class DiscoverCharacteristic: TaskOperation {
     
     var finished: EmptyResponse?
     
-    var peripheral: CBPeripheral
+    let peripheral: CBPeripheral
     
     private var characteristicIdentifier: CharacteristicIdentifier
     private var callback: ((DiscoveryResult) -> Void)?
-    
-    deinit {
-        //print("Deinited DiscoverCharacteristic")
-    }
     
     init(characteristicIdentifier: CharacteristicIdentifier, peripheral: CBPeripheral, callback: @escaping (DiscoveryResult) -> Void) {
         self.characteristicIdentifier = characteristicIdentifier

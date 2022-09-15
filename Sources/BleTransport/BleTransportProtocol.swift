@@ -86,6 +86,10 @@ public protocol BleTransportProtocol {
     /// - Parameter completion: Callback called when bluetooth becomes available (or immediately if was already available)
     func bluetoothAvailabilityCallback(completion: @escaping ((_ availability: Bool)->()))
     
+    /// Get notified when bluetooth changes its state
+    /// - Parameter completion: Callback called whenever bluetooth state changes (and immediately with the current state)
+    func bluetoothStateCallback(completion: @escaping ((_ state: CBManagerState)->()))
+    
     /// Get notified once when the peripheral disconnects
     /// - Parameter completion: Callback called when the peripheral disconnects. This will be called only once.
     func notifyDisconnected(completion: @escaping EmptyResponse)
