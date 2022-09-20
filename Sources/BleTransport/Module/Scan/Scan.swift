@@ -39,6 +39,9 @@ public class Scan: TaskOperation {
     /// The discoveries made so far in a given scan session.
     private var discoveries = [ScanDiscovery]()
     
+    /// The timers used to estimate an expiry callback, indicating that the peripheral is potentially no longer accessible.
+    private var timers = [(UUID, Timer?)]()
+    
     deinit {
         //print("Deinited Scan")
     }
@@ -84,7 +87,7 @@ public class Scan: TaskOperation {
             service.uuid
         }
         
-        manager.scanForPeripherals(withServices: services, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+        manager.scanForPeripherals(withServices: services, options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
     }
     
     func stopScanning() {
@@ -97,6 +100,8 @@ public class Scan: TaskOperation {
         let peripheralIdentifier = PeripheralIdentifier(uuid: cbPeripheral.identifier, name: cbPeripheral.name)
         
         let newDiscovery = ScanDiscovery(peripheralIdentifier: peripheralIdentifier, advertisementPacket: advertisementData, rssi: rssi.intValue)
+        
+        refreshTimer(identifier: newDiscovery.peripheralIdentifier.uuid)
         
         if let indexOfExistingDiscovery = discoveries.firstIndex(where: { existingDiscovery -> Bool in
             existingDiscovery.peripheralIdentifier == peripheralIdentifier
@@ -121,7 +126,7 @@ public class Scan: TaskOperation {
     }
     
     private func stopScan(with discoveries: [ScanDiscovery], error: Error?, timedOut: Bool) {
-        clearTimeoutTimer()
+        clearTimers()
         
         // There is no point trying to stop the scan if Bluetooth is off, as trying to do so has no effect and will also cause CoreBluetooth to log an "API MISUSE" warning.
         if manager.state == .poweredOn {
@@ -140,6 +145,67 @@ public class Scan: TaskOperation {
     func complete(_ discoveries: [ScanDiscovery], _ error: Error?, _ timedOut: Bool) {
         stopped(discoveries, error, timedOut)
         finished?()
+    }
+    
+    private func refreshTimer(identifier: UUID) {
+        if let indexOfExistingTimer = timers.firstIndex(where: { uuid, _ -> Bool in
+            uuid == identifier
+        }) {
+            timers[indexOfExistingTimer].1?.invalidate()
+            timers[indexOfExistingTimer].1 = nil
+            timers.remove(at: indexOfExistingTimer)
+        }
+        
+        var timer: Timer?
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: false) { [weak self] _ in
+            guard let weakSelf = self else {
+                return
+            }
+            weakSelf.refresh(identifier: identifier)
+        }
+        
+        timers.append((identifier, timer!))
+    }
+    
+    private func refresh(identifier: UUID) {
+        if let indexOfExpiredDiscovery = discoveries.firstIndex(where: { discovery -> Bool in
+            discovery.peripheralIdentifier.uuid == identifier
+        }) {
+            let expiredDiscovery = discoveries[indexOfExpiredDiscovery]
+            discoveries.remove(at: indexOfExpiredDiscovery)
+            
+            if let expired = expired {
+                if case .stop = expired(expiredDiscovery, discoveries) {
+                    DispatchQueue.main.async {
+                        self.clearTimers()
+                        
+                        if self.manager.state == .poweredOn {
+                            self.manager.stopScan()
+                        }
+                        
+                        self.complete(self.discoveries, nil, false)
+                    }
+                }
+            }
+        }
+    }
+    
+    @objc func refresh(timer: Timer) {
+        if let identifier = timer.userInfo as? UUID {
+            refresh(identifier: identifier)
+        }
+    }
+    
+    private func clearTimers() {
+        for timerIndex in 0..<timers.count {
+            timers[timerIndex].1?.invalidate()
+            timers[timerIndex].1 = nil
+        }
+        
+        timers = []
+        
+        clearTimeoutTimer()
     }
     
     private func clearTimeoutTimer() {
