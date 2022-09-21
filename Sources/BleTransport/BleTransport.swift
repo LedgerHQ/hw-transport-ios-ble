@@ -13,6 +13,7 @@ public enum BleTransportError: LocalizedError {
     case pendingActionOnDevice
     case userRefusedOnDevice
     case scanningTimedOut
+    case bluetoothNotAvailable
     case connectError(description: String)
     case currentConnectedError(description: String)
     case writeError(description: String)
@@ -31,6 +32,8 @@ public enum BleTransportError: LocalizedError {
         case .scanningTimedOut:
             /// https://github.com/LedgerHQ/ledger-live/blob/acdd59af6dcfcda1d136ccbfc8fdf49311485a32/libs/ledgerjs/packages/hw-transport/src/Transport.ts#L261
             return "No Ledger device found (timeout)"
+        case .bluetoothNotAvailable:
+            return "Bluetooth is not available"
         case .connectError(let description):
             return "Connect error: \(description)"
         case .currentConnectedError(let description):
@@ -60,6 +63,8 @@ public enum BleTransportError: LocalizedError {
         case .scanningTimedOut:
             /// https://github.com/LedgerHQ/ledger-live/blob/acdd59af6dcfcda1d136ccbfc8fdf49311485a32/libs/ledgerjs/packages/hw-transport/src/Transport.ts#L261
             return "ListenTimeout"
+        case .bluetoothNotAvailable:
+            return nil
         case .connectError(_):
             return nil
         case .currentConnectedError(_):
@@ -233,6 +238,9 @@ extension BleTransport: BleModuleDelegate {
     }
     
     public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse) {
+        
+        guard isBluetoothAvailable else { failure(.bluetoothNotAvailable); return }
+        
         self.scanDuration = scanDuration
         
         var connecting = false
@@ -337,6 +345,9 @@ extension BleTransport: BleModuleDelegate {
     }
     
     public func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse) {
+        
+        guard isBluetoothAvailable else { failure(.bluetoothNotAvailable); return }
+        
         self.stopScanning()
         
         self.disconnectedCallback = disconnectedCallback
