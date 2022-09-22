@@ -50,4 +50,29 @@ class Queue {
             finished?()
         }
     }
+    
+    func removeAllUpToScanOrConnect(finished: EmptyResponse? = nil) {
+        DispatchQueue.main.async {
+            guard let currentOperation = self.queue.first else { return }
+            if let firstOperationOfTypeIndex = self.queue.firstIndex(where: { type(of: $0) == Connect.self || type(of: $0) == Scan.self }) {
+                var newQueue = [TaskOperation]()
+                for (index, operation) in self.queue.enumerated() {
+                    if index < firstOperationOfTypeIndex {
+                        operation.finished = nil
+                    } else {
+                        newQueue.append(operation)
+                    }
+                }
+                self.queue = newQueue
+                if let newCurrentOperation = self.queue.first, newCurrentOperation !== currentOperation {
+                    newCurrentOperation.start()
+                }
+                finished?()
+            } else {
+                self.removeAll {
+                    finished?()
+                }
+            }
+        }
+    }
 }

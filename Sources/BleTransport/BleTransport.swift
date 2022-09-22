@@ -332,7 +332,7 @@ extension BleTransport: BleModuleDelegate {
         }
     }
     
-    public func disconnect(immediate: Bool, completion: OptionalBleErrorResponse?) {
+    public func disconnect(completion: OptionalBleErrorResponse?) {
         self.bleModule.disconnect { [weak self] result in
             switch result {
             case .disconnected(_):
@@ -554,7 +554,7 @@ extension BleTransport: BleModuleDelegate {
         } failure: { [weak self] error in
             if case .pairingError = error {
                 self?.connectFailure?(error)
-                self?.disconnect(immediate: false, completion: nil)
+                self?.disconnect(completion: nil)
             } else {
                 self?.exchangeCallback?(.failure(error))
             }
@@ -769,9 +769,9 @@ extension BleTransport {
             
         }
     }
-    public func disconnect(immediate: Bool) async throws {
+    public func disconnect() async throws {
         return try await withCheckedThrowingContinuation { continuation in
-            disconnect(immediate: immediate) { error in
+            disconnect() { error in
                 if let error = error {
                     continuation.resume(throwing: error)
                 } else {

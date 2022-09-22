@@ -41,7 +41,7 @@ class Disconnect: TaskOperation {
         callback?(result)
         callback = nil
         
-        /// We don't call `finished?()` on `Disconnect` because we don't want the queue to advance to the next operation, as soon as the delegate received `didDisconnect` it clears the queue
+        /// We don't call `finished?()` on `Disconnect` because we don't want the queue to advance to the next operation, as soon as the delegate received `didDisconnect` it clears the queue up to the next `Scan` or `Connect` (if there's any)
     }
     
     func fail(_ error: Error) {

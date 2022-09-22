@@ -88,7 +88,7 @@ class ScanViewController: UIViewController {
                 destVC.connectedDevice = connectedPeripheral
                 destVC.transport = self.transport
                 destVC.disconnectTapped = { [weak self] deviceToDisconnect in
-                    self?.transport?.disconnect(immediate: true, completion: { error in
+                    self?.transport?.disconnect(completion: { error in
                         if let error = error {
                             print("Couldn't disconnect with error: \(error)")
                         } else {

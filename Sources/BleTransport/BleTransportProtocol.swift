@@ -76,8 +76,8 @@ public protocol BleTransportProtocol {
     /// - Parameters:
     ///   - immediate: Whether the disconnection should be queued or executed immediately. Passing `false` will wait until the current tasks have been completed.
     ///   - completion: Callback called when the peripheral disconnection has failed with an error or disconnected successfully (`error == nil`).
-    func disconnect(immediate: Bool, completion: OptionalBleErrorResponse?)
-    func disconnect(immediate: Bool) async throws
+    func disconnect(completion: OptionalBleErrorResponse?)
+    func disconnect() async throws
     
     
     // MARK: - Notifications

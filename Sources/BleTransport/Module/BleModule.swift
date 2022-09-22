@@ -69,13 +69,15 @@ public class BleModule: NSObject {
                 self?.operationsQueue.next()
             }
         }
-        operationsQueue.add(operation)
+        self.operationsQueue.add(operation)
     }
     
     private func clearAfterDisconnect(from peripheral: PeripheralIdentifier) {
-        self.connectedPeripheral = nil
-        delegate.disconnected(from: peripheral)
-        operationsQueue.removeAll()
+        DispatchQueue.main.async {
+            self.connectedPeripheral = nil
+            self.delegate.disconnected(from: peripheral)
+            self.operationsQueue.removeAllUpToScanOrConnect()
+        }
     }
 }
 
@@ -87,8 +89,10 @@ extension BleModule {
               discovery: @escaping (ScanDiscovery, [ScanDiscovery]) -> ScanAction,
               expired: ((ScanDiscovery, [ScanDiscovery]) -> ScanAction)? = nil,
               stopped: @escaping ([ScanDiscovery], Error?, Bool) -> Void) {
-        let scanOperation = Scan(duration: duration, throttleRSSIDelta: throttleRSSIDelta, serviceIdentifiers: serviceIdentifiers, discovery: discovery, expired: expired, stopped: stopped, manager: cbCentralManager)
-        addOperation(scanOperation)
+        DispatchQueue.main.async {
+            let scanOperation = Scan(duration: duration, throttleRSSIDelta: throttleRSSIDelta, serviceIdentifiers: serviceIdentifiers, discovery: discovery, expired: expired, stopped: stopped, manager: self.cbCentralManager)
+            self.addOperation(scanOperation)
+        }
     }
     
     func stopScanning() {
@@ -99,14 +103,16 @@ extension BleModule {
 // MARK: - Connect
 extension BleModule {
     public func connect(peripheralIdentifier: PeripheralIdentifier, timeout: Timeout, callback: @escaping (ConnectionResult) -> Void) {
-        let connectOperation = Connect(peripheralIdentifier: peripheralIdentifier, manager: cbCentralManager, timeout: timeout, callback: { [weak self] result in
-            guard let self = self else { callback(.failure(BleModuleError.selfIsNil)); return }
-            if case .success(let cbPeripheral) = result {
-                self.connectedPeripheral = Peripheral(delegate: self, cbPeripheral: cbPeripheral)
-            }
-            callback(result)
-        })
-        addOperation(connectOperation)
+        DispatchQueue.main.async {
+            let connectOperation = Connect(peripheralIdentifier: peripheralIdentifier, manager: self.cbCentralManager, timeout: timeout, callback: { [weak self] result in
+                guard let self = self else { callback(.failure(BleModuleError.selfIsNil)); return }
+                if case .success(let cbPeripheral) = result {
+                    self.connectedPeripheral = Peripheral(delegate: self, cbPeripheral: cbPeripheral)
+                }
+                callback(result)
+            })
+            self.addOperation(connectOperation)
+        }
     }
 }
 
@@ -117,18 +123,20 @@ extension BleModule {
         value: S,
         type: CBCharacteristicWriteType = .withResponse,
         completion: @escaping (WriteResult) -> Void) {
-            guard let peripheral = connectedPeripheral else {
-                print("Cannot request write on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
-                completion(.failure(BleModuleError.notConnected))
-                return
-            }
-            Task() {
-                do {
-                    try await peripheral.prepareForCharacteristic(characteristicIdentifier)
-                    let writeOperation = Write(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: value, writeType: type, callback: completion)
-                    self.addOperation(writeOperation)
-                } catch {
-                    completion(.failure(error))
+            DispatchQueue.main.async {
+                guard let peripheral = self.connectedPeripheral else {
+                    print("Cannot request write on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
+                    completion(.failure(BleModuleError.notConnected))
+                    return
+                }
+                Task() {
+                    do {
+                        try await peripheral.prepareForCharacteristic(characteristicIdentifier)
+                        let writeOperation = Write(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: value, writeType: type, callback: completion)
+                        self.addOperation(writeOperation)
+                    } catch {
+                        completion(.failure(error))
+                    }
                 }
             }
         }
@@ -139,29 +147,31 @@ extension BleModule {
     public func listen<R: Receivable>(
         to characteristicIdentifier: CharacteristicIdentifier,
         completion: @escaping (ReadResult<R>) -> Void) {
-            guard let peripheral = connectedPeripheral else {
-                print("Cannot request listen on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
-                completion(.failure(BleModuleError.notConnected))
-                return
-            }
-            
-            Task() {
-                do {
-                    try await peripheral.prepareForCharacteristic(characteristicIdentifier)
-                    
-                    let listenOperation = Listen(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: true) { [weak self] result in
-                        guard let self = self else { completion(.failure(BleModuleError.selfIsNil)); return }
+            DispatchQueue.main.async {
+                guard let peripheral = self.connectedPeripheral else {
+                    print("Cannot request listen on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
+                    completion(.failure(BleModuleError.notConnected))
+                    return
+                }
+                
+                Task() {
+                    do {
+                        try await peripheral.prepareForCharacteristic(characteristicIdentifier)
                         
-                        switch result {
-                        case .success:
-                            self.listeners[characteristicIdentifier] = ({ dataResult in
-                                completion(ReadResult<R>(dataResult: dataResult))
-                            })
-                        case .failure(let error):
-                            completion(.failure(error))
+                        let listenOperation = Listen(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: true) { [weak self] result in
+                            guard let self = self else { completion(.failure(BleModuleError.selfIsNil)); return }
+                            
+                            switch result {
+                            case .success:
+                                self.listeners[characteristicIdentifier] = ({ dataResult in
+                                    completion(ReadResult<R>(dataResult: dataResult))
+                                })
+                            case .failure(let error):
+                                completion(.failure(error))
+                            }
                         }
+                        self.addOperation(listenOperation)
                     }
-                    addOperation(listenOperation)
                 }
             }
         }
@@ -170,9 +180,11 @@ extension BleModule {
 // MARK: - Disconnect
 extension BleModule {
     public func disconnect(completion: ((DisconnectionResult) -> Void)? = nil) {
-        guard let connectedPeripheral = connectedPeripheral else { completion?(.failure(BleModuleError.notConnected)); return }
-        let disconnectOperation = Disconnect(peripheral: connectedPeripheral.cbPeripheral, manager: cbCentralManager, callback: completion)
-        addOperation(disconnectOperation)
+        DispatchQueue.main.async {
+            guard let connectedPeripheral = self.connectedPeripheral else { completion?(.failure(BleModuleError.notConnected)); return }
+            let disconnectOperation = Disconnect(peripheral: connectedPeripheral.cbPeripheral, manager: self.cbCentralManager, callback: completion)
+            self.addOperation(disconnectOperation)
+        }
     }
 }
 
