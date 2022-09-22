@@ -333,6 +333,7 @@ extension BleTransport: BleModuleDelegate {
     }
     
     public func disconnect(completion: OptionalBleErrorResponse?) {
+        guard isConnected else { completion?(nil); return }
         self.bleModule.disconnect { [weak self] result in
             switch result {
             case .disconnected(_):

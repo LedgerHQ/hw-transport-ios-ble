@@ -203,10 +203,6 @@ extension BleModule: CBCentralManagerDelegate {
     }
     
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        if let error = error {
-            operationsQueue.operationsOfType(Disconnect.self).first?.fail(error)
-            return
-        }
         let peripheralIdentifier = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
         operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral()
         operationsQueue.operationsOfType(Disconnect.self).first?.didDisconnectPeripheral(peripheral: peripheralIdentifier)
