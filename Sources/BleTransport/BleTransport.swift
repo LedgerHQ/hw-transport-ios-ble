@@ -347,6 +347,7 @@ extension BleTransport: BleModuleDelegate {
     
     public func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse) {
         
+        guard !isConnected else { failure(.connectError(description: "Already connected to a peripheral")); return }
         guard isBluetoothAvailable else { failure(.bluetoothNotAvailable); return }
         
         self.stopScanning()
