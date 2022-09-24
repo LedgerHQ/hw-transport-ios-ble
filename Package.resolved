@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "bluejay",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/harrisonf-ledger/bluejay",
+      "state" : {
+        "branch" : "multiplatform",
+        "revision" : "20eac767b8404f6e97eba341395bd0c7f3f3d2d6"
+      }
+    }
+  ],
+  "version" : 2
+}
