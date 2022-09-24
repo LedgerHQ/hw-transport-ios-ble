@@ -27,10 +27,6 @@ class Write<T: Sendable>: TaskOperation {
     /// Callback for the write attempt.
     private var callback: ((WriteResult) -> Void)?
     
-    deinit {
-        //print("Deinited Write")
-    }
-    
     init(characteristicIdentifier: CharacteristicIdentifier, peripheral: CBPeripheral, value: T, writeType: CBCharacteristicWriteType = .withResponse, callback: @escaping (WriteResult) -> Void) {
         self.characteristicIdentifier = characteristicIdentifier
         self.peripheral = peripheral

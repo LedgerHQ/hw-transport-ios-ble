@@ -146,7 +146,8 @@ extension BleModule {
 extension BleModule {
     public func listen<R: Receivable>(
         to characteristicIdentifier: CharacteristicIdentifier,
-        completion: @escaping (ReadResult<R>) -> Void) {
+        completion: @escaping (ReadResult<R>) -> Void,
+        setupFinished: EmptyResponse?) {
             DispatchQueue.main.async {
                 guard let peripheral = self.connectedPeripheral else {
                     print("Cannot request listen on \(characteristicIdentifier.description): \(BleModuleError.notConnected.localizedDescription)")
@@ -160,6 +161,8 @@ extension BleModule {
                         
                         let listenOperation = Listen(characteristicIdentifier: characteristicIdentifier, peripheral: peripheral.cbPeripheral, value: true) { [weak self] result in
                             guard let self = self else { completion(.failure(BleModuleError.selfIsNil)); return }
+                            
+                            setupFinished?()
                             
                             switch result {
                             case .success:

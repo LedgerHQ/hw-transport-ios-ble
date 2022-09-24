@@ -34,45 +34,87 @@ class ScanViewController: UIViewController {
         transport = BleTransport.shared
     }
     
+    var apdus = [
+        APDU(raw: "e001000000"),
+        APDU(raw: "e00400000433000004"),
+        APDU(raw: "e05000000836fa90b3beeac61c"),
+        APDU(raw: "e0518000894104035411f40b6e9967107afcb8bbb3645cee64a6e691c8be2dfceb67af5fd5c236a4c07abd8eea30a4ce731fb886b54598989adacc75c060b259bf081964e261ac46304402200299ffc4d475e516797d72372001d4b4583683264c5397025472fc7057b04c0602203f75632b73ec07c26c886b8404a20969fbdf12b4ffc6d1d4d5e5f7594e7baa1d")
+    ]
+    
+    func sendNextApdu() {
+        if apdus.count > 0 {
+            let apdu = apdus.removeFirst()
+            print("WADUS :: SENDING APDU")
+            transport?.exchange(apdu: apdu){ [self] response in
+                print("WADUS :: APDU response", response)
+                sendNextApdu()
+            }
+        }
+    }
+
+    var nonce = 1
     fileprivate func connectToPeripheral(_ peripheral: PeripheralIdentifier) {
+        nonce += 1
         guard peripheralConnecting == nil else { return }
         peripheralConnecting = peripheral
         
+        print("WADUS :: CONNECT SEND", nonce)
         transport?.connect(toPeripheralID: peripheral) {
-            print("Device disconnected!")
-        } success: { [weak self] peripheralConnected in
-            self?.connectedPeripheral = peripheralConnected
-            self?.performSegue(withIdentifier: "connectedDeviceSegue", sender: nil)
-            self?.peripheralConnecting = nil
-        } failure: { [weak self] error in
-            let alert = UIAlertController(title: "Error connecting", message: "\(error)", preferredStyle: .alert)
-            let okAction = UIAlertAction(title: "Ok", style: .cancel)
-            alert.addAction(okAction)
-            self?.present(alert, animated: true, completion: nil)
+            print("WADUS :: DEVICE DISCONNECTED", self.nonce)
+            self.peripheralConnecting = nil
+        } success: { [self] peripheralConnected in
+            sendNextApdu()
+            print("WADUS :: DISCONNECTED SEND", nonce)
             
-            self?.peripheralConnecting = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)){
+                transport?.disconnect(){ [self] maybeError in
+                    self.peripheralConnecting = nil
+                    print("WADUS :: DISCONNECTED CALLBACK", maybeError, nonce)
+                    self.connectToPeripheral(peripheral)
+                }
+            }
+        } failure: { [self] error in
+           print("WADUS :: FAILURE TO CONNECT", nonce)
         }
+        
+        /*transport?.connect(toPeripheralID: peripheral, disconnectedCallback: nil, success: { peripheralConnected in
+            self.sendNextApdu()
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
+                self.transport?.disconnect(){ [self] maybeError in
+                    //self.peripheralConnecting = nil
+                    print("WADUS :: DISCONNECTED CALLBACK", maybeError, nonce)
+                    /*if nonce < 3 {
+                        self.connectToPeripheral(peripheral)
+                    }*/
+                }
+            }
+        }, failure: { error in
+            print("ERROR: \(error)")
+        })*/
 
     }
 
     @IBAction func findDevicesButtonTapped(_ sender: Any) {
         if let transport = transport, transport.isBluetoothAvailable {
             self.scanningStateChanged(isScanning: true)
+            
             transport.scan(duration: 5.0) { [weak self] discoveries in
                 self?.peripheralsServicesTuple = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
                 self?.devicesTableView.reloadData()
+                /// We found something, stop
+                transport.stopScanning()
             } stopped: { [weak self] error in
-                self?.scanningStateChanged(isScanning: false)
-                self?.devicesFoundLabel.alpha = 0.0
-                self?.peripheralsServicesTuple = []
-                self?.devicesTableView.reloadData()
-                if let error = error {
-                    let alert = UIAlertController(title: "Error scanning", message: "\(error)", preferredStyle: .alert)
-                    let okAction = UIAlertAction(title: "Ok", style: .cancel)
-                    alert.addAction(okAction)
-                    self?.present(alert, animated: true, completion: nil)
-                }
+//                self?.scanningStateChanged(isScanning: false)
+//                self?.devicesFoundLabel.alpha = 0.0
+//                self?.peripheralsServicesTuple = []
+//                self?.devicesTableView.reloadData()
+//                if let error = error {
+//                    let alert = UIAlertController(title: "Error scanning", message: "\(error)", preferredStyle: .alert)
+//                    let okAction = UIAlertAction(title: "Ok", style: .cancel)
+//                    alert.addAction(okAction)
+//                    self?.present(alert, animated: true, completion: nil)
+//                }
             }
         }
     }
@@ -90,7 +132,7 @@ class ScanViewController: UIViewController {
                 destVC.disconnectTapped = { [weak self] deviceToDisconnect in
                     self?.transport?.disconnect(completion: { error in
                         if let error = error {
-                            print("Couldn't disconnect with error: \(error)")
+                            print("WADUS :: Couldn't disconnect with error: \(error)")
                         } else {
                             self?.connectedPeripheral = nil
                             self?.devicesTableView.reloadData()
