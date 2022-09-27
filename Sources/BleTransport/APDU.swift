@@ -18,12 +18,16 @@ public class APDU: Sendable, Receivable {
         chunks.isEmpty
     }
     
-    public static let inferMTU = APDU(data: [0x08,0x00,0x00,0x00,0x00])
+    public static let inferMTU = APDU(data: [0x08,0x00,0x00,0x00,0x00], preventChunking: true)
     
-    public init(data: [UInt8]) {
+    public init(data: [UInt8], preventChunking: Bool = false) {
         let dataReceived = Data(data)
         self.data = dataReceived
-        self.chunks = self.chunkAPDU(data: dataReceived)
+        if preventChunking {
+            self.chunks = [Data(data)]
+        } else {
+            self.chunks = self.chunkAPDU(data: dataReceived)
+        }
     }
     
     // Overload to allow passing a String instead of UInt8 since that's what we get from live-common anyway

@@ -168,9 +168,16 @@ extension BleTransport: BleModuleDelegate {
     
     /// Exchange handling
     private var exchangeCallback: ((Result<String, BleTransportError>) -> Void)?
-    private var isExchanging = false
+    private var isExchanging = false {
+        didSet {
+            if !isExchanging, let waitingToDisconnectCompletion = waitingToDisconnectCompletion {
+                disconnect(completion: waitingToDisconnectCompletion)
+            }
+        }
+    }
     private var currentResponse = ""
     private var currentResponseRemainingLength = 0
+    private var waitingToDisconnectCompletion: OptionalBleErrorResponse?
     
     /// Infer MTU
     private var mtuWaitingForCallback: PeripheralResponse?
@@ -334,13 +341,16 @@ extension BleTransport: BleModuleDelegate {
     
     public func disconnect(completion: OptionalBleErrorResponse?) {
         guard isConnected else { completion?(nil); return }
+        guard !isExchanging else { self.waitingToDisconnectCompletion = completion; return }
         self.bleModule.disconnect { [weak self] result in
             switch result {
             case .disconnected(_):
                 self?.connectedPeripheral = nil
                 completion?(nil)
+                self?.waitingToDisconnectCompletion = nil
             case .failure(let error):
                 completion?(.lowerLevelError(description: error.localizedDescription))
+                self?.waitingToDisconnectCompletion = nil
             }
         }
     }
@@ -361,9 +371,10 @@ extension BleTransport: BleModuleDelegate {
                 case .success(let peripheral):
                     self.connectedPeripheral = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
                     self.connectFailure = failure
-                    self.startListening()
-                    self.mtuWaitingForCallback = success
-                    self.inferMTU()
+                    self.startListening {
+                        self.mtuWaitingForCallback = success
+                        self.inferMTU()
+                    }
                 case .failure(let error):
                     failure(.connectError(description: error.localizedDescription))
                 }
@@ -515,7 +526,7 @@ extension BleTransport: BleModuleDelegate {
         
     }
     
-    fileprivate func startListening() {
+    fileprivate func startListening(setupFinished: EmptyResponse?) {
         self.listen { [weak self] apduReceived in
             guard let self = self else { return }
             if self.mtuWaitingForCallback != nil {
@@ -553,6 +564,8 @@ extension BleTransport: BleModuleDelegate {
             } else {
                 print("WAITING_FOR_NEXT_MESSAGE!!")
             }
+        } setupFinished: {
+            setupFinished?()
         } failure: { [weak self] error in
             if case .pairingError = error {
                 self?.connectFailure?(error)
@@ -564,7 +577,7 @@ extension BleTransport: BleModuleDelegate {
         }
     }
     
-    fileprivate func listen(apduReceived: @escaping APDUResponse, failure: @escaping BleErrorResponse) {
+    fileprivate func listen(apduReceived: @escaping APDUResponse, setupFinished: EmptyResponse?, failure: @escaping BleErrorResponse) {
         let peripheralService: BleService
         let currentConnectedTuple = currentConnectedTuple()
         switch currentConnectedTuple {
@@ -585,6 +598,8 @@ extension BleTransport: BleModuleDelegate {
                     failure(.listenError(description: error.localizedDescription))
                 }
             }
+        } setupFinished: {
+            setupFinished?()
         }
     }
     
@@ -594,8 +609,6 @@ extension BleTransport: BleModuleDelegate {
         } failure: { error in
             print("Error inferring MTU: \(error.localizedDescription)")
         }
-
-
     }
     
     fileprivate func parseMTUresponse(apduReceived: APDU) {

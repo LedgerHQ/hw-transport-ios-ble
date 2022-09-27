@@ -46,10 +46,6 @@ public class Connect: TaskOperation {
     private var connectionTimer: Timer?
     private let timeout: Timeout?
     
-    deinit {
-        //print("Deinited Connect")
-    }
-    
     init(peripheralIdentifier: PeripheralIdentifier, manager: CBCentralManager, timeout: Timeout, callback: @escaping (ConnectionResult) -> Void) {
         
         self.manager = manager
