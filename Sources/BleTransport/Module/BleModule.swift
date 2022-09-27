@@ -206,8 +206,9 @@ extension BleModule: CBCentralManagerDelegate {
     }
     
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        /// We ignore `error` because an error thrown here wouldn't mean that `disconnect` failed but rather that we got disconnected unexpectedly (which happens for example every time the device disconnect because of opening/quitting an app on it)
         let peripheralIdentifier = PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name)
-        operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral()
+        operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral(error: nil)
         operationsQueue.operationsOfType(Disconnect.self).first?.didDisconnectPeripheral(peripheral: peripheralIdentifier)
         clearAfterDisconnect(from: peripheralIdentifier)
     }
@@ -216,7 +217,7 @@ extension BleModule: CBCentralManagerDelegate {
      This mostly happens when either the Bluetooth device or the Core Bluetooth stack somehow only partially completes the negotiation of a connection. For simplicity we treat this as a disconnection event, so we can perform all the same clean up logic.
      */
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral()
+        operationsQueue.operationsOfType(Connect.self).first?.didDisconnectPeripheral(error: error)
         clearAfterDisconnect(from: PeripheralIdentifier(uuid: peripheral.identifier, name: peripheral.name))
     }
 }

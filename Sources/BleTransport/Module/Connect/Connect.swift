@@ -19,6 +19,7 @@ public enum Timeout {
 public enum ConnectionError: LocalizedError {
     case timedOut
     case unexpectedDisconnect
+    case peripheralCantBeRetrievedFromCentralManager
     
     public var errorDescription: String? {
         switch self {
@@ -26,6 +27,8 @@ public enum ConnectionError: LocalizedError {
             return "Connection timed out."
         case .unexpectedDisconnect:
             return "Unexpected disconnect while connecting."
+        case .peripheralCantBeRetrievedFromCentralManager:
+            return "Central Manager can't retrieve the peripheral."
         }
     }
 }
@@ -52,7 +55,7 @@ public class Connect: TaskOperation {
         self.timeout = timeout
         self.callback = callback
         
-        guard let cbPeripheral = manager.retrievePeripherals(withIdentifiers: [peripheralIdentifier.uuid]).first else { complete(.failure(ConnectionError.unexpectedDisconnect)); return }
+        guard let cbPeripheral = manager.retrievePeripherals(withIdentifiers: [peripheralIdentifier.uuid]).first else { complete(.failure(ConnectionError.peripheralCantBeRetrievedFromCentralManager)); return }
         self.peripheral = cbPeripheral
     }
     
@@ -82,8 +85,12 @@ public class Connect: TaskOperation {
         complete(.success(peripheral))
     }
     
-    func didDisconnectPeripheral() {
-        complete(.failure(ConnectionError.unexpectedDisconnect))
+    func didDisconnectPeripheral(error: Error?) {
+        if let error = error {
+            complete(.failure(error))
+        } else {
+            complete(.failure(ConnectionError.unexpectedDisconnect))
+        }
     }
     
     private func cancelTimer() {
