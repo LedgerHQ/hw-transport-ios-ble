@@ -716,6 +716,13 @@ extension BleTransport: BleModuleDelegate {
 
 /// Async implementations
 extension BleTransport {
+    public func bluetoothStateCallback() async -> CBManagerState {
+        return await withCheckedContinuation { continuation in
+            bluetoothStateCallback { state in
+                continuation.resume(returning: state)
+            }
+        }
+    }
     @discardableResult
     public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier {
         let lock = NSLock()
