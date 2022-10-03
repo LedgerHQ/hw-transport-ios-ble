@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Bluejay
+import CoreBluetooth
 
 @objc
 public class BleTransportConfiguration: NSObject {
@@ -33,6 +33,10 @@ public class BleTransportConfiguration: NSObject {
         let nanoFTSService = BleService(serviceUUID: nanoFTSServiceUUID, notifyUUID: nanoFTSNotifyCharacteristicUUID, writeWithResponseUUID: nanoFTSWriteWithResponseCharacteristicUUID, writeWithoutResponseUUID: nanoFTSWriteWithoutResponseCharacteristicUUID)
         
         return BleTransportConfiguration(services: [nanoXService, nanoFTSService])
+    }
+    
+    public func serviceMatching(serviceUUID: CBUUID) -> BleService? {
+        return services.first(where: { configService in serviceUUID == configService.service.uuid })
     }
 }
 

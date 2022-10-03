@@ -14,13 +14,9 @@ let package = Package(
             name: "BleTransport",
             targets: ["BleTransport"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/harrisonf-ledger/bluejay", branch: "multiplatform"),
-    ],
     targets: [
         .target(
-            name: "BleTransport",
-            dependencies: [.product(name: "Bluejay", package: "bluejay")]),
+            name: "BleTransport"),
         .testTarget(
             name: "BleTransportTests",
             dependencies: ["BleTransport"]),

@@ -1,15 +1,6 @@
 {
   "pins" : [
     {
-      "identity" : "bluejay",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/harrisonf-ledger/bluejay",
-      "state" : {
-        "branch" : "multiplatform",
-        "revision" : "e6d1dbb346a13f81fee3e86769199d6c36f2c8b7"
-      }
-    },
-    {
       "identity" : "starscream",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/daltoniam/Starscream",

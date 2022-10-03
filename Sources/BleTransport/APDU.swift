@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Bluejay
 
 public class APDU: Sendable, Receivable {
     
@@ -19,15 +18,24 @@ public class APDU: Sendable, Receivable {
         chunks.isEmpty
     }
     
-    public init(data: [UInt8]) {
+    public static let inferMTU = APDU(data: [0x08,0x00,0x00,0x00,0x00], preventChunking: true)
+    
+    public init(data: [UInt8], preventChunking: Bool = false) {
         let dataReceived = Data(data)
         self.data = dataReceived
-        self.chunks = self.chunkAPDU(data: dataReceived)
+        if preventChunking {
+            self.chunks = [Data(data)]
+        } else {
+            self.chunks = self.chunkAPDU(data: dataReceived)
+        }
     }
     
     // Overload to allow passing a String instead of UInt8 since that's what we get from live-common anyway
     public init(raw: String) {
-        guard raw.isHexDigit else { print("STRING PASSED IS NOT HEX"); fatalError() }
+        guard raw.isHexDigit else {
+            self.data = Data()
+            return
+        }
         let dataReceived = Data(raw.UInt8Array())
         self.data = dataReceived
         self.chunks = self.chunkAPDU(data: dataReceived)
@@ -38,7 +46,7 @@ public class APDU: Sendable, Receivable {
         self.chunks = self.chunkAPDU(data: bluetoothData)
     }
     
-    // When called by the Bluejay library it will return the current frame to send
+    // When called by BleTransport it will return the current frame to send
     public func toBluetoothData() -> Data {
         return self.chunks[0]
     }
@@ -48,7 +56,7 @@ public class APDU: Sendable, Receivable {
         self.chunks.removeFirst()
     }
     
-    private func chunkAPDU(data: Data) -> [Data] {
+    internal func chunkAPDU(data: Data) -> [Data] {
         let apdu: [UInt8] = Array(data)
         var chunks = Array<Data>()
         let size = UInt16(apdu.count)
@@ -58,7 +66,7 @@ public class APDU: Sendable, Receivable {
         var ind = UInt16(0)            // Frame counter
         
         while(hi < size) {
-            let maxDataForFrame = ind == 0 ? (153 - 5) : (153 - 3)
+            let maxDataForFrame = ind == 0 ? (APDU.mtuSize - 5) : (APDU.mtuSize - 3)
             var messageData = Data()
             messageData.append(Data(head))
             /// Index is 2 bytes
@@ -86,6 +94,7 @@ class APDUs: NSObject {
 
 public extension String {
     func UInt8Array() -> [UInt8] {
+        guard self.count % 2 == 0 else { return [] }
         var lo = 0
         let chars = Array(self)
         var out = Array<UInt8>()

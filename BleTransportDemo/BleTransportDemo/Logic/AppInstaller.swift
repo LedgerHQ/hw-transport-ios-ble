@@ -7,7 +7,6 @@
 
 import Foundation
 import Starscream
-import Bluejay
 import BleTransport
 
 protocol InstallingProtocol {
