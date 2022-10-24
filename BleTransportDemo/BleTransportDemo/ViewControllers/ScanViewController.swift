@@ -58,6 +58,8 @@ class ScanViewController: UIViewController {
     @IBAction func findDevicesButtonTapped(_ sender: Any) {
         if let transport = transport, transport.isBluetoothAvailable {
             self.scanningStateChanged(isScanning: true)
+            
+            
             transport.scan(duration: 5.0) { [weak self] discoveries in
                 self?.peripheralsServicesTuple = discoveries
                 self?.devicesFoundLabel.alpha = discoveries.isEmpty ? 0.0 : 1.0
