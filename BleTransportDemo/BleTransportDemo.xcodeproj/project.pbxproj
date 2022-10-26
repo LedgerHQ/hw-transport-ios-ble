@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		934847732909632100D1F2DF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934847722909632100D1F2DF /* AppDelegate.swift */; };
+		934847752909632100D1F2DF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934847742909632100D1F2DF /* ViewController.swift */; };
+		934847772909632300D1F2DF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 934847762909632300D1F2DF /* Assets.xcassets */; };
+		9348477A2909632300D1F2DF /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 934847782909632300D1F2DF /* Main.storyboard */; };
+		93484780290965A300D1F2DF /* BleTransport in Frameworks */ = {isa = PBXBuildFile; productRef = 9348477F290965A300D1F2DF /* BleTransport */; };
 		93811E272836DC0B00A81145 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93811E262836DC0B00A81145 /* AppDelegate.swift */; };
 		93811E292836DC0B00A81145 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93811E282836DC0B00A81145 /* SceneDelegate.swift */; };
 		93811E2E2836DC0B00A81145 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 93811E2C2836DC0B00A81145 /* Main.storyboard */; };
@@ -21,6 +26,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		934847702909632100D1F2DF /* BleTransportDemoMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BleTransportDemoMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		934847722909632100D1F2DF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		934847742909632100D1F2DF /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		934847762909632300D1F2DF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		934847792909632300D1F2DF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		9348477B2909632300D1F2DF /* BleTransportDemoMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BleTransportDemoMac.entitlements; sourceTree = "<group>"; };
 		93811E232836DC0B00A81145 /* BleTransportDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BleTransportDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		93811E262836DC0B00A81145 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		93811E282836DC0B00A81145 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -36,6 +47,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		9348476D2909632100D1F2DF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				93484780290965A300D1F2DF /* BleTransport in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		93811E202836DC0B00A81145 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -48,11 +67,24 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		934847712909632100D1F2DF /* BleTransportDemoMac */ = {
+			isa = PBXGroup;
+			children = (
+				934847722909632100D1F2DF /* AppDelegate.swift */,
+				934847742909632100D1F2DF /* ViewController.swift */,
+				934847762909632300D1F2DF /* Assets.xcassets */,
+				934847782909632300D1F2DF /* Main.storyboard */,
+				9348477B2909632300D1F2DF /* BleTransportDemoMac.entitlements */,
+			);
+			path = BleTransportDemoMac;
+			sourceTree = "<group>";
+		};
 		93811E1A2836DC0B00A81145 = {
 			isa = PBXGroup;
 			children = (
 				93811E3A2836DC5500A81145 /* Packages */,
 				93811E252836DC0B00A81145 /* BleTransportDemo */,
+				934847712909632100D1F2DF /* BleTransportDemoMac */,
 				93811E242836DC0B00A81145 /* Products */,
 				93811E3C2836DC6A00A81145 /* Frameworks */,
 			);
@@ -62,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				93811E232836DC0B00A81145 /* BleTransportDemo.app */,
+				934847702909632100D1F2DF /* BleTransportDemoMac.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -125,6 +158,26 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		9348476F2909632100D1F2DF /* BleTransportDemoMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9348477E2909632300D1F2DF /* Build configuration list for PBXNativeTarget "BleTransportDemoMac" */;
+			buildPhases = (
+				9348476C2909632100D1F2DF /* Sources */,
+				9348476D2909632100D1F2DF /* Frameworks */,
+				9348476E2909632100D1F2DF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BleTransportDemoMac;
+			packageProductDependencies = (
+				9348477F290965A300D1F2DF /* BleTransport */,
+			);
+			productName = BleTransportDemoMac;
+			productReference = 934847702909632100D1F2DF /* BleTransportDemoMac.app */;
+			productType = "com.apple.product-type.application";
+		};
 		93811E222836DC0B00A81145 /* BleTransportDemo */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 93811E372836DC0D00A81145 /* Build configuration list for PBXNativeTarget "BleTransportDemo" */;
@@ -153,9 +206,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1330;
+				LastSwiftUpdateCheck = 1400;
 				LastUpgradeCheck = 1330;
 				TargetAttributes = {
+					9348476F2909632100D1F2DF = {
+						CreatedOnToolsVersion = 14.0.1;
+					};
 					93811E222836DC0B00A81145 = {
 						CreatedOnToolsVersion = 13.3.1;
 					};
@@ -178,11 +234,21 @@
 			projectRoot = "";
 			targets = (
 				93811E222836DC0B00A81145 /* BleTransportDemo */,
+				9348476F2909632100D1F2DF /* BleTransportDemoMac */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		9348476E2909632100D1F2DF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				934847772909632300D1F2DF /* Assets.xcassets in Resources */,
+				9348477A2909632300D1F2DF /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		93811E212836DC0B00A81145 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -196,6 +262,15 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		9348476C2909632100D1F2DF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				934847752909632100D1F2DF /* ViewController.swift in Sources */,
+				934847732909632100D1F2DF /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		93811E1F2836DC0B00A81145 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -212,6 +287,14 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		934847782909632300D1F2DF /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				934847792909632300D1F2DF /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
 		93811E2C2836DC0B00A81145 /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -231,6 +314,68 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		9348477C2909632300D1F2DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = BleTransportDemoMac/BleTransportDemoMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X6LFS5BQKN;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Bluetooth will be used to connect to your devices";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.3;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = LedgerHQ.BleTransportDemoMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9348477D2909632300D1F2DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = BleTransportDemoMac/BleTransportDemoMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X6LFS5BQKN;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Bluetooth will be used to connect to your devices";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.3;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = LedgerHQ.BleTransportDemoMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		93811E352836DC0D00A81145 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -408,6 +553,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		9348477E2909632300D1F2DF /* Build configuration list for PBXNativeTarget "BleTransportDemoMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9348477C2909632300D1F2DF /* Debug */,
+				9348477D2909632300D1F2DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		93811E1E2836DC0B00A81145 /* Build configuration list for PBXProject "BleTransportDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -440,6 +594,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		9348477F290965A300D1F2DF /* BleTransport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = BleTransport;
+		};
 		93811E3D2836DC6A00A81145 /* BleTransport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = BleTransport;
