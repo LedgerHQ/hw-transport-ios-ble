@@ -497,7 +497,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = K82DRMV4FX;
+				DEVELOPMENT_TEAM = X6LFS5BQKN;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BleTransportDemo/Info.plist;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Bluetooth will be used to connect to your devices";
@@ -527,7 +527,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = K82DRMV4FX;
+				DEVELOPMENT_TEAM = X6LFS5BQKN;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BleTransportDemo/Info.plist;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Bluetooth will be used to connect to your devices";
