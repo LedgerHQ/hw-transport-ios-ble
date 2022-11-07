@@ -762,7 +762,6 @@ extension BleTransport {
             } failure: { error in
                 lock.lock()
                 defer { lock.unlock() }
-                
                 nillableContinuation?.resume(throwing: error)
                 nillableContinuation = nil
             }
@@ -792,12 +791,23 @@ extension BleTransport {
         }
     }
     public func disconnect() async throws {
+        let lock = NSLock()
         return try await withCheckedThrowingContinuation { continuation in
+            
+            // https://forums.swift.org/t/how-to-prevent-swift-task-continuation-misuse/57581
+            var nillableContinuation: CheckedContinuation<Void, Error>? = continuation
+            
             disconnect() { error in
                 if let error = error {
-                    continuation.resume(throwing: error)
+                    lock.lock()
+                    defer { lock.unlock() }
+                    nillableContinuation?.resume(throwing: error)
+                    nillableContinuation = nil
                 } else {
-                    continuation.resume()
+                    lock.lock()
+                    defer { lock.unlock() }
+                    nillableContinuation?.resume()
+                    nillableContinuation = nil
                 }
             }
         }
