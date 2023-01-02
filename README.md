@@ -4,9 +4,9 @@
 [Ledger Devs Discord](https://developers.ledger.com/discord-pro),
 [Developer Portal](https://developers.ledger.com/)
 
-# BleTransport
+# BleTransport (beta)
 
-Allows for communication with Ledger Hardware Wallets via BLE (Bluetooth Low Energy) on iOS (>=13.0) and macOS (>=12.0).
+Allows for communication with Ledger Hardware Wallets via BLE (Bluetooth Low Energy) on iOS (>=13.0) and macOS (>=12.0). Please note that this is a beta release and still under active development.
 
 ## Usage
 
