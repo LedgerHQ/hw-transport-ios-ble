@@ -714,12 +714,20 @@ extension BleTransport {
         }
     }
     fileprivate func openApp(_ name: String) async throws {
+        let lock = NSLock()
         return try await withCheckedThrowingContinuation { continuation in
+            var nillableContinuation: CheckedContinuation<Void, Error>? = continuation
+            
             openApp(name) {
-                continuation.resume()
+                lock.lock()
+                defer { lock.unlock() }
+                nillableContinuation?.resume()
+                nillableContinuation = nil
             } failure: { error in
-                continuation.resume(throwing: error)
-            }
+                lock.lock()
+                defer { lock.unlock() }
+                nillableContinuation?.resume(throwing: error)
+                nillableContinuation = nil            }
         }
     }
     fileprivate func closeApp() async throws {
