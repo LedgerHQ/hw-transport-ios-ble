@@ -47,14 +47,21 @@ public class Peripheral: NSObject {
     }
     
     private func discoverCharacteristic(_ characteristicIdentifier: CharacteristicIdentifier) async throws {
+        let lock = NSLock()
         return try await withCheckedThrowingContinuation { continuation in
+            var nillableContinuation: CheckedContinuation<Void, Error>? = continuation
+
             discoverCharacteristic(characteristicIdentifier) { result in
+                lock.lock()
+                defer { lock.unlock() }
+                
                 switch result {
                 case .success:
-                    continuation.resume()
+                    nillableContinuation?.resume()
+                    nillableContinuation = nil
                 case .failure(let error):
-                    continuation.resume(throwing: error)
-                }
+                    nillableContinuation?.resume(throwing: error)
+                    nillableContinuation = nil                }
             }
         }
     }
