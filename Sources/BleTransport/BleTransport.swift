@@ -8,126 +8,6 @@
 import Foundation
 import CoreBluetooth
 
-/// Errors thrown when scanning/sending/receiving/connecting
-public enum BleTransportError: LocalizedError {
-    case pendingActionOnDevice
-    case userRefusedOnDevice
-    case scanningTimedOut
-    case bluetoothNotAvailable
-    case connectError(description: String)
-    case currentConnectedError(description: String)
-    case writeError(description: String)
-    case readError(description: String)
-    case listenError(description: String)
-    case scanError(description: String)
-    case pairingError(description: String)
-    case lowerLevelError(description: String)
-    
-    public var errorDescription: String? {
-        switch self {
-        case .pendingActionOnDevice:
-            return "Pending action on device"
-        case .userRefusedOnDevice:
-            return "User refused on device"
-        case .scanningTimedOut:
-            /// https://github.com/LedgerHQ/ledger-live/blob/acdd59af6dcfcda1d136ccbfc8fdf49311485a32/libs/ledgerjs/packages/hw-transport/src/Transport.ts#L261
-            return "No Ledger device found (timeout)"
-        case .bluetoothNotAvailable:
-            return "Bluetooth is not available"
-        case .connectError(let description):
-            return "Connect error: \(description)"
-        case .currentConnectedError(let description):
-            return "Current connected error: \(description)"
-        case .writeError(let description):
-            return "Write error: \(description)"
-        case .readError(let description):
-            return "Read error: \(description)"
-        case .listenError(let description):
-            return "Listen error: \(description)"
-        case .scanError(let description):
-            return "Scan error: \(description)"
-        case .pairingError(let description):
-            return "Pairing error: \(description)"
-        case .lowerLevelError(let description):
-            return "Lower level error: \(description)"
-        }
-    }
-    
-    /// `id` is defined by what the JS bindings are returning and using for error handling
-    public var id: String? {
-        switch self {
-        case .pendingActionOnDevice:
-            return "TransportRaceCondition"
-        case .userRefusedOnDevice:
-            return nil
-        case .scanningTimedOut:
-            /// https://github.com/LedgerHQ/ledger-live/blob/acdd59af6dcfcda1d136ccbfc8fdf49311485a32/libs/ledgerjs/packages/hw-transport/src/Transport.ts#L261
-            return "ListenTimeout"
-        case .bluetoothNotAvailable:
-            return nil
-        case .connectError(_):
-            return nil
-        case .currentConnectedError(_):
-            return nil
-        case .writeError(_):
-            return nil
-        case .readError(_):
-            return nil
-        case .listenError(_):
-            return nil
-        case .scanError(_):
-            return nil
-        case .pairingError(_):
-            return nil
-        case .lowerLevelError(_):
-            return nil
-        }
-    }
-}
-
-/// Errors received as `status` sent in a message from a device
-public enum BleStatusError: LocalizedError, Hashable {
-    case userRejected(status: String)
-    case appNotAvailableInDevice(status: String)
-    case formatNotSupported(status: String)
-    case couldNotParseResponseData(status: String)
-    case unknown(status: String)
-    case noStatus
-    
-    public var errorDescription: String? {
-        switch self {
-        case .userRejected(_):
-            return "User rejected action"
-        case .appNotAvailableInDevice(_):
-            return "App is not available in device"
-        case .formatNotSupported(_):
-            return "Format is not supported"
-        case .couldNotParseResponseData(_):
-            return "Could not parse response data"
-        case .unknown(let status):
-            return "Unknown error. Status received: \(status)"
-        case .noStatus:
-            return "No status received from device"
-        }
-    }
-    
-    public var status: String? {
-        switch self {
-        case .userRejected(let status):
-            return status
-        case .appNotAvailableInDevice(let status):
-            return status
-        case .formatNotSupported(let status):
-            return status
-        case .couldNotParseResponseData(let status):
-            return status
-        case .unknown(let status):
-            return status
-        case .noStatus:
-            return nil
-        }
-    }
-}
 
 extension BleTransport: BleModuleDelegate {
     func disconnected(from peripheral: PeripheralIdentifier) {
@@ -834,12 +714,20 @@ extension BleTransport {
         }
     }
     fileprivate func openApp(_ name: String) async throws {
+        let lock = NSLock()
         return try await withCheckedThrowingContinuation { continuation in
+            var nillableContinuation: CheckedContinuation<Void, Error>? = continuation
+            
             openApp(name) {
-                continuation.resume()
+                lock.lock()
+                defer { lock.unlock() }
+                nillableContinuation?.resume()
+                nillableContinuation = nil
             } failure: { error in
-                continuation.resume(throwing: error)
-            }
+                lock.lock()
+                defer { lock.unlock() }
+                nillableContinuation?.resume(throwing: error)
+                nillableContinuation = nil            }
         }
     }
     fileprivate func closeApp() async throws {
