@@ -84,3 +84,36 @@ public enum BleTransportError: LocalizedError {
     }
 }
 
+extension BleTransportError: Equatable {
+    public static func == (lhs: BleTransportError, rhs: BleTransportError) -> Bool {
+        switch (lhs, rhs) {
+        case (.pendingActionOnDevice, .pendingActionOnDevice):
+            return true
+        case (.userRefusedOnDevice, .userRefusedOnDevice):
+            return true
+        case (.scanningTimedOut, .scanningTimedOut):
+            return true
+        case (.bluetoothNotAvailable, .bluetoothNotAvailable):
+            return true
+        case (.connectError(let lhsDescription), .connectError(let rhsDescription)):
+            return lhsDescription == rhsDescription
+        case (.currentConnectedError(let lhsDescription), .currentConnectedError(let rhsDescription)):
+            return lhsDescription == rhsDescription
+        case (.writeError(let lhsDescription), .writeError(let rhsDescription)):
+            return lhsDescription == rhsDescription
+        case (.readError(let lhsDescription), .readError(let rhsDescription)):
+            return lhsDescription == rhsDescription
+        case (.listenError(let lhsDescription), .listenError(let rhsDescription)):
+            return lhsDescription == rhsDescription
+        case (.scanError(let lhsDescription), .scanError(let rhsDescription)):
+            return lhsDescription == rhsDescription
+        case (.pairingError(let lhsDescription), .pairingError(let rhsDescription)):
+            return lhsDescription == rhsDescription
+        case (.lowerLevelError(let lhsDescription), .lowerLevelError(let rhsDescription)):
+            return lhsDescription == rhsDescription
+        default:
+            return false
+        }
+    }
+}
+
