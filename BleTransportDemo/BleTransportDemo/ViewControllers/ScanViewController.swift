@@ -16,7 +16,7 @@ class ScanViewController: UIViewController {
     @IBOutlet weak var infoLabel: UILabel!
     @IBOutlet weak var devicesFoundLabel: UILabel!
     
-    var peripheralsServicesTuple = [PeripheralInfoTuple]()
+    var peripheralsServicesTuple = [PeripheralInfo]()
     var peripheralConnecting: PeripheralIdentifier?
     var connectedPeripheral: PeripheralIdentifier?
     

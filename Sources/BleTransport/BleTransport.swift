@@ -40,7 +40,7 @@ extension BleTransport: BleModuleDelegate {
     
     private var scanDuration: TimeInterval = 5.0 /// `scanDuration` will be overriden every time a value gets passed to `scan/create`
     
-    private var peripheralsServicesTuple = [PeripheralInfoTuple]()
+    private var peripheralsServicesTuple = [PeripheralInfo]()
     private var connectedPeripheral: PeripheralIdentifier?
     private var bluetoothAvailabilityCompletion: ((Bool)->())?
     private var bluetoothStateCompletion: ((CBManagerState)->())?
@@ -132,7 +132,7 @@ extension BleTransport: BleModuleDelegate {
         
         var connecting = false
         
-        func attemptConnecting(peripheralInfo: PeripheralInfoTuple) {
+        func attemptConnecting(peripheralInfo: PeripheralInfo) {
             connect(toPeripheralID: peripheralInfo.peripheral, disconnectedCallback: disconnectedCallback, success: { connectedPeripheral in
                 success(connectedPeripheral)
             }, failure: failure)
@@ -179,7 +179,7 @@ extension BleTransport: BleModuleDelegate {
     ///   - failure: The failue callback
     fileprivate func send<S: Sendable>(value: S, retryWithResponse: Bool = false, success: @escaping EmptyResponse, failure: @escaping BleErrorResponse) {
         let connectedPeripheral: PeripheralIdentifier
-        let connectedPeripheralTuple: PeripheralInfoTuple
+        let connectedPeripheralTuple: PeripheralInfo
         let peripheralService: BleService
         let currentConnectedTuple = currentConnectedTuple()
         switch currentConnectedTuple {
@@ -347,10 +347,10 @@ extension BleTransport: BleModuleDelegate {
     /// - Returns: A boolean indicating whether the last changed since the last update.
     @discardableResult
     fileprivate func updatePeripheralsServicesTuple(discoveries: [ScanDiscovery]) -> Bool {
-        var auxPeripherals = [PeripheralInfoTuple]()
+        var auxPeripherals = [PeripheralInfo]()
         for discovery in discoveries {
             if let services = discovery.advertisementPacket["kCBAdvDataServiceUUIDs"] as? [CBUUID], let firstService = services.first {
-                auxPeripherals.append((peripheral: discovery.peripheralIdentifier, rssi: discovery.rssi, serviceUUID: firstService, canWriteWithoutResponse: nil))
+                auxPeripherals.append(PeripheralInfo(peripheral: discovery.peripheralIdentifier, rssi: discovery.rssi, serviceUUID: firstService, canWriteWithoutResponse: nil))
             }
         }
         
@@ -381,7 +381,7 @@ extension BleTransport: BleModuleDelegate {
 
     }
     
-    fileprivate func currentConnectedTuple() -> Result<(PeripheralIdentifier, PeripheralInfoTuple, BleService), BleTransportError> {
+    fileprivate func currentConnectedTuple() -> Result<(PeripheralIdentifier, PeripheralInfo, BleService), BleTransportError> {
         guard let connectedPeripheral = connectedPeripheral else { return .failure(.currentConnectedError(description: "Not connected")) }
         guard let connectedPeripheralTuple = peripheralsServicesTuple.first(where: { $0.peripheral.uuid == connectedPeripheral.uuid }) else { return .failure(.currentConnectedError(description: "peripheralsServiceTuple doesn't contain connected peripheral UUID")) }
         guard let peripheralService = configuration.serviceMatching(serviceUUID: connectedPeripheralTuple.serviceUUID) else { return .failure(.currentConnectedError(description: "No matching peripheralService")) }
@@ -603,6 +603,21 @@ extension BleTransport {
             }
         }
     }
+    
+    public func scan(duration: TimeInterval) -> AsyncThrowingStream<[PeripheralInfo], Error> {
+        return AsyncThrowingStream { continuation in
+            BleTransport.shared.scan(duration: duration) { devices in
+                continuation.yield(devices)
+            } stopped: { error in
+                if let error = error {
+                    continuation.finish(throwing: error)
+                    return
+                }
+                continuation.finish()
+            }
+        }
+    }
+    
     @discardableResult
     public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier {
         let lock = NSLock()

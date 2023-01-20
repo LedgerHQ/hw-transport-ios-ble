@@ -8,9 +8,8 @@
 import Foundation
 import CoreBluetooth
 
-public typealias PeripheralInfoTuple = (peripheral: PeripheralIdentifier, rssi: Int, serviceUUID: CBUUID, canWriteWithoutResponse: Bool?)
 public typealias PeripheralResponse = ((PeripheralIdentifier)->())
-public typealias PeripheralsWithServicesResponse = (([PeripheralInfoTuple])->())
+public typealias PeripheralsWithServicesResponse = (([PeripheralInfo])->())
 public typealias APDUResponse = ((APDU)->())
 public typealias EmptyResponse = (()->())
 public typealias BleErrorResponse = ((BleTransportError)->())
@@ -30,6 +29,7 @@ public protocol BleTransportProtocol {
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered peripherals changes.
     func scan(duration: TimeInterval, callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
+    func scan(duration: TimeInterval) -> AsyncThrowingStream<[PeripheralInfo], Error>
     
     /// Stop scanning for reachable peripherals.
     ///
