@@ -29,6 +29,7 @@ public protocol BleTransportProtocol {
     ///
     /// - Parameter callback: Called each time the peripheral list of discovered peripherals changes.
     func scan(duration: TimeInterval, callback: @escaping PeripheralsWithServicesResponse, stopped: @escaping OptionalBleErrorResponse)
+    func scan(duration: TimeInterval) -> AsyncThrowingStream<[PeripheralInfo], Error>
     
     /// Stop scanning for reachable peripherals.
     ///

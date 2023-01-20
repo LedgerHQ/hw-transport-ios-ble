@@ -603,6 +603,21 @@ extension BleTransport {
             }
         }
     }
+    
+    public func scan(duration: TimeInterval) -> AsyncThrowingStream<[PeripheralInfo], Error> {
+        return AsyncThrowingStream { continuation in
+            BleTransport.shared.scan(duration: duration) { devices in
+                continuation.yield(devices)
+            } stopped: { error in
+                if let error = error {
+                    continuation.finish(throwing: error)
+                    return
+                }
+                continuation.finish()
+            }
+        }
+    }
+    
     @discardableResult
     public func create(scanDuration: TimeInterval, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier {
         let lock = NSLock()
