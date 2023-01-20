@@ -38,7 +38,7 @@ public class Connect: TaskOperation {
     var finished: EmptyResponse?
     
     /// The peripheral this operation is for.
-    var peripheral: CBPeripheral! = nil
+    let peripheral: CBPeripheral
     
     /// The manager responsible for this operation.
     let manager: CBCentralManager
@@ -49,14 +49,11 @@ public class Connect: TaskOperation {
     private var connectionTimer: Timer?
     private let timeout: Timeout?
     
-    init(peripheralIdentifier: PeripheralIdentifier, manager: CBCentralManager, timeout: Timeout, callback: @escaping (ConnectionResult) -> Void) {
-        
+    init(peripheral: CBPeripheral, manager: CBCentralManager, timeout: Timeout, callback: @escaping (ConnectionResult) -> Void) {
         self.manager = manager
         self.timeout = timeout
         self.callback = callback
-        
-        guard let cbPeripheral = manager.retrievePeripherals(withIdentifiers: [peripheralIdentifier.uuid]).first else { complete(.failure(ConnectionError.peripheralCantBeRetrievedFromCentralManager)); return }
-        self.peripheral = cbPeripheral
+        self.peripheral = peripheral
     }
     
     func start() {

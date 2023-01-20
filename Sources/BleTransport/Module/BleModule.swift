@@ -104,8 +104,14 @@ extension BleModule {
 extension BleModule {
     public func connect(peripheralIdentifier: PeripheralIdentifier, timeout: Timeout, callback: @escaping (ConnectionResult) -> Void) {
         DispatchQueue.main.async {
-            let connectOperation = Connect(peripheralIdentifier: peripheralIdentifier, manager: self.cbCentralManager, timeout: timeout, callback: { [weak self] result in
-                guard let self = self else { callback(.failure(BleModuleError.selfIsNil)); return }
+            
+            guard let cbPeripheral = self.cbCentralManager.retrievePeripherals(withIdentifiers: [peripheralIdentifier.uuid]).first else { callback(.failure(ConnectionError.peripheralCantBeRetrievedFromCentralManager)); return }
+            
+            let connectOperation = Connect(peripheral: cbPeripheral, manager: self.cbCentralManager, timeout: timeout, callback: { [weak self] result in
+                guard let self = self else {
+                    callback(.failure(BleModuleError.selfIsNil));
+                    return
+                }
                 if case .success(let cbPeripheral) = result {
                     self.connectedPeripheral = Peripheral(delegate: self, cbPeripheral: cbPeripheral)
                 }
