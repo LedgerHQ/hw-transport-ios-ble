@@ -377,7 +377,7 @@ extension BleTransport: BleModuleDelegate {
     fileprivate func scan(validationBlock predicate: @escaping (PeripheralInfo) -> Bool, connectFunction: @escaping ConnectFunction, failure: @escaping BleErrorResponse) {
         let timer = createScanAndDiscoverTimer(failure: failure)
         
-        self.scan(duration: self.scanDuration) { [weak self] discoveries in
+        scan(duration: scanDuration) { [weak self] discoveries in
             if let p = discoveries.first(where: { predicate($0) }) {
                 timer.invalidate()
                 connectFunction(p.peripheral)
