@@ -375,26 +375,22 @@ extension BleTransport: BleModuleDelegate {
     }
     
     fileprivate func scan(validationBlock predicate: @escaping (PeripheralInfo) -> Bool, connectFunction: @escaping ConnectFunction, failure: @escaping BleErrorResponse) {
-        let timer = createScanAndDiscoverTimer(failure: failure)
-        
-        scan(duration: scanDuration) { [weak self] discoveries in
-            if let p = discoveries.first(where: { predicate($0) }) {
-                timer.invalidate()
-                connectFunction(p.peripheral)
-                self?.stopScanning()
-            }
-        } stopped: { error in
-            if let error = error {
-                failure(.connectError(description: "Couldn't find peripheral when scanning because of error: \(error.localizedDescription)"))
-            }
-        }
-    }
-    
-    fileprivate func createScanAndDiscoverTimer(failure: @escaping BleErrorResponse) -> Timer {
-        DispatchQueue.main.sync {
-            Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+        DispatchQueue.main.async {
+            let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
                 self.stopScanning()
                 failure(.connectError(description: "Couldn't find peripheral when scanning, timed out"))
+            }
+            
+            self.scan(duration: self.scanDuration) { [weak self] discoveries in
+                if let p = discoveries.first(where: { predicate($0) }) {
+                    timer.invalidate()
+                    connectFunction(p.peripheral)
+                    self?.stopScanning()
+                }
+            } stopped: { error in
+                if let error = error {
+                    failure(.connectError(description: "Couldn't find peripheral when scanning because of error: \(error.localizedDescription)"))
+                }
             }
         }
     }
