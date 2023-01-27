@@ -44,6 +44,12 @@ public protocol BleTransportProtocol {
     func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse)
     @discardableResult func connect(toPeripheralID peripheral: PeripheralIdentifier, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier
     
+    /// Attempt to connect to a given peripheral.
+    ///
+    /// - Parameter name: The name of the peripheral to connect to.
+    func connect(toPeripheralNamed name: String, disconnectedCallback: EmptyResponse?, success: @escaping PeripheralResponse, failure: @escaping BleErrorResponse)
+    @discardableResult func connect(toPeripheralNamed name: String, disconnectedCallback: EmptyResponse?) async throws -> PeripheralIdentifier
+    
     /// Convenience method to `scan` for peripherals and connecting to the first discovered one.
     /// - Parameters:
     ///   - success: Callback called when the connection is successful.
