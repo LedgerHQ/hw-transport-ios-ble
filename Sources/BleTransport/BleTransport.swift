@@ -407,7 +407,12 @@ extension BleTransport: BleModuleDelegate {
      * Write the next ble frame to the peripheral, only triggered from the exchange/send methods.
      **/
     fileprivate func writeAPDU(_ apdu: APDU, withResponse: Bool = false) {
-        guard !apdu.isEmpty else { self.exchangeCallback?(.failure(.writeError(description: "APDU is empty"))); return }
+        guard !apdu.isEmpty else {
+            self.exchangeCallback?(.failure(.writeError(description: "APDU is empty")))
+            self.exchangeCallback = nil
+            return
+        }
+        
         send(apdu: apdu) {
             apdu.next()
             if !apdu.isEmpty {
@@ -416,6 +421,7 @@ extension BleTransport: BleModuleDelegate {
         } failure: { error in
             self.isExchanging = false
             self.exchangeCallback?(.failure(.writeError(description: error.localizedDescription)))
+            self.exchangeCallback = nil
         }
         
     }
@@ -453,6 +459,7 @@ extension BleTransport: BleModuleDelegate {
                 /// We got the full response in `currentResponse`
                 self.isExchanging = false
                 self.exchangeCallback?(.success(self.currentResponse))
+                self.exchangeCallback = nil
                 self.currentResponse = ""
                 self.currentResponseRemainingLength = 0
             } else {
@@ -466,6 +473,7 @@ extension BleTransport: BleModuleDelegate {
                 self?.disconnect(completion: nil)
             } else {
                 self?.exchangeCallback?(.failure(error))
+                self?.exchangeCallback = nil
             }
             self?.isExchanging = false
         }
