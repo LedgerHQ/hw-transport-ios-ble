@@ -112,6 +112,6 @@ public protocol BleTransportProtocol {
 }
 
 public struct AppInfo {
-    public let name: String
+     public let name: String
     public let version: String
 }
