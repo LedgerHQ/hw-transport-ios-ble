@@ -63,23 +63,23 @@ public enum BleTransportError: LocalizedError {
             /// https://github.com/LedgerHQ/ledger-live/blob/acdd59af6dcfcda1d136ccbfc8fdf49311485a32/libs/ledgerjs/packages/hw-transport/src/Transport.ts#L261
             return "ListenTimeout"
         case .bluetoothNotAvailable:
-            return nil
+            return "BluetoothNotAvaliable"
         case .connectError(_):
-            return nil
+            return "ConnectionError"
         case .currentConnectedError(_):
-            return nil
+            return "CurrentConnectionError"
         case .writeError(_):
-            return nil
+            return "WriteError"
         case .readError(_):
-            return nil
+            return "ReadError"
         case .listenError(_):
-            return nil
+            return "ListenError"
         case .scanError(_):
-            return nil
+            return "ScanError"
         case .pairingError(_):
-            return nil
+            return "PairError"
         case .lowerLevelError(_):
-            return nil
+            return "LowerLevelError"
         }
     }
 }
