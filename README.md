@@ -34,15 +34,6 @@ BleTransport.shared.scan(duration: 30.0) { discoveries in
 
 ## Installation
 
-### CocoaPods
-
-BleTransport is available through [CocoaPods](http://cocoapods.org). To install
-it, simply add the following line to your Podfile:
-
-```bash
-pod 'BleTransport'
-```
-
 ### Swift Package Manager
 
 To integrate using Apple's [Swift Package Manager](https://swift.org/package-manager/), add the following as a dependency to your `Package.swift`:
